@@ -61,6 +61,9 @@ app.use('/api/services', require('./routes/services'));
 app.use('/api/formations', require('./routes/formations'));
 app.use('/api/contact', require('./routes/contact'));
 app.use('/api/admin', require('./routes/admin'));
+app.use('/api/auth', require('./routes/auth'));              // Authentification client
+app.use('/api/timeslots', require('./routes/timeslots'));    // Créneaux horaires
+app.use('/api/bookings', require('./routes/bookings'));  
 
 // Route pour tester toutes les APIs
 app.get('/api/test-routes', (req, res) => {

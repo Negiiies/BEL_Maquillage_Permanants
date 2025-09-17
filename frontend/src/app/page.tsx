@@ -72,7 +72,7 @@ export default function Home() {
                 playsInline
                 preload="metadata"
               >
-                <source src="/videos/Video.mp4" type="video/mp4" />
+                <source src="/videos/Video1.mp4" type="video/mp4" />
               </video>
             </div>
             
@@ -110,7 +110,7 @@ export default function Home() {
                 playsInline
                 preload="metadata"
               >
-                <source src="/videos/Video1.mp4" type="video/mp4" />
+                <source src="/videos/Video.mp4" type="video/mp4" />
               </video>
             </div>
             
