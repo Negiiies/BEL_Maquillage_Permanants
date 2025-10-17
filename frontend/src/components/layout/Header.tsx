@@ -7,17 +7,29 @@ import { Menu, X, User } from 'lucide-react'
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  // TODO: Récupérer l'état de connexion depuis un context/store
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
-  const [userType, setUserType] = useState<'client' | 'admin' | null>(null)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // Effet de scroll pour changer l'apparence de la navbar
+  // Détection du scroll
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50)
     }
     window.addEventListener('scroll', handleScroll)
     return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Vérifier si l'utilisateur est connecté
+  useEffect(() => {
+    const checkAuth = () => {
+      const token = localStorage.getItem('clientToken')
+      setIsAuthenticated(!!token)
+    }
+    
+    checkAuth()
+    
+    // Écouter les changements de localStorage
+    window.addEventListener('storage', checkAuth)
+    return () => window.removeEventListener('storage', checkAuth)
   }, [])
 
   const navigation = [
@@ -37,21 +49,15 @@ const Header = () => {
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
-          {/* Logo - Emplacement pour votre SVG */}
+          {/* Logo */}
           <div className="flex-shrink-0">
             <Link href="/" className="flex items-center group">
-              {/* REMPLACEZ CETTE DIV PAR VOTRE LOGO SVG */}
               <div className="w-16 h-16 transition-transform duration-300 group-hover:scale-105">
-                {/* Votre logo SVG ici */}
                 <img 
                   src="/images/Logo .svg" 
                   alt="BEL Institut" 
                   className="w-full h-full object-contain filter drop-shadow-lg"
                 />
-                {/* Alternative si pas de logo pour l'instant : */}
-                {/* <div className="w-full h-full bg-white/10 rounded-full backdrop-blur-sm border border-white/20 flex items-center justify-center">
-                  <span className="text-white text-xl font-light">LOGO</span>
-                </div> */}
               </div>
             </Link>
           </div>
@@ -72,7 +78,7 @@ const Header = () => {
 
           {/* Actions Desktop */}
           <div className="hidden lg:flex items-center space-x-8">
-            {!isLoggedIn ? (
+            {!isAuthenticated ? (
               <>
                 <Link
                   href="/auth/login"
@@ -87,7 +93,7 @@ const Header = () => {
                   Inscription
                 </Link>
                 <Link
-                  href="/booking"
+                  href="/auth/login"
                   className="bg-white/10 backdrop-blur-sm border border-white/20 text-white px-6 py-2.5 text-sm font-light tracking-[0.05em] transition-all duration-300 hover:bg-white/20 hover:border-white/40"
                 >
                   Prendre RDV
@@ -95,25 +101,18 @@ const Header = () => {
               </>
             ) : (
               <>
-                {userType === 'admin' && (
-                  <Link
-                    href="/admin/dashboard"
-                    className="text-white/60 hover:text-white text-sm font-light tracking-[0.05em] transition-colors duration-300"
-                  >
-                    Administration
-                  </Link>
-                )}
                 <Link
-                  href="/booking"
-                  className="bg-white/10 backdrop-blur-sm border border-white/20 text-white px-6 py-2.5 text-sm font-light tracking-[0.05em] transition-all duration-300 hover:bg-white/20"
+                  href="/mon-compte"
+                  className="text-white/60 hover:text-white text-sm font-light tracking-[0.05em] transition-colors duration-300 flex items-center space-x-2"
                 >
-                  Réserver
+                  <User className="h-4 w-4" />
+                  <span>Mon compte</span>
                 </Link>
                 <Link
-                  href="/client/profile"
-                  className="text-white/60 hover:text-white transition-colors duration-300 p-2"
+                  href="/reserver"
+                  className="bg-white/10 backdrop-blur-sm border border-white/20 text-white px-6 py-2.5 text-sm font-light tracking-[0.05em] transition-all duration-300 hover:bg-white/20"
                 >
-                  <User className="h-5 w-5" />
+                  Prendre RDV
                 </Link>
               </>
             )}
@@ -125,11 +124,7 @@ const Header = () => {
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-white/80 hover:text-white p-2 transition-colors duration-300"
             >
-              {isMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+              {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>
@@ -151,7 +146,7 @@ const Header = () => {
             ))}
             
             <div className="border-t border-white/10 pt-4 mt-6 space-y-4">
-              {!isLoggedIn ? (
+              {!isAuthenticated ? (
                 <>
                   <Link
                     href="/auth/login"
@@ -168,7 +163,7 @@ const Header = () => {
                     Inscription
                   </Link>
                   <Link
-                    href="/booking"
+                    href="/auth/login"
                     className="block bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-3 text-center text-base font-light tracking-[0.05em] transition-all duration-300 mt-4"
                     onClick={() => setIsMenuOpen(false)}
                   >
@@ -177,29 +172,20 @@ const Header = () => {
                 </>
               ) : (
                 <>
-                  {userType === 'admin' && (
-                    <Link
-                      href="/admin/dashboard"
-                      className="block text-white/60 hover:text-white text-base font-light tracking-[0.05em] transition-colors duration-300 py-2"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Administration
-                    </Link>
-                  )}
                   <Link
-                    href="/booking"
-                    className="block bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-3 text-center text-base font-light tracking-[0.05em] transition-all duration-300"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Réserver
-                  </Link>
-                  <Link
-                    href="/client/profile"
+                    href="/mon-compte"
                     className="flex items-center text-white/60 hover:text-white text-base font-light tracking-[0.05em] transition-colors duration-300 py-2"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <User className="h-5 w-5 mr-2" />
                     Mon Compte
+                  </Link>
+                  <Link
+                    href="/reserver"
+                    className="block bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-3 text-center text-base font-light tracking-[0.05em] transition-all duration-300"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Prendre RDV
                   </Link>
                 </>
               )}

@@ -1,17 +1,92 @@
-// backend/controllers/timeslotController.js
-const { TimeSlot, Service, Booking } = require('../models');
+// backend/controllers/timeslotController.js - VERSION COMPLÈTE AMÉLIORÉE
+const { TimeSlot, Service, Booking, sequelize } = require('../models');
 const { Op } = require('sequelize');
+
+// Fonction helper pour calculer la durée selon le service
+const getServiceDuration = (serviceCategory) => {
+  switch (serviceCategory) {
+    case 'maquillage_permanent': return 120; // 2h
+    case 'extensions_cils': return 90;       // 1h30
+    case 'soins_regard': return 30;          // 30min
+    default: return 60;                      // 1h par défaut
+  }
+};
+
+// Fonction helper pour vérifier si un créneau peut accueillir un service de durée donnée
+const canSlotAccommodateService = async (slot, serviceDuration) => {
+  const slotStart = new Date(`${slot.date}T${slot.startTime}`);
+  const serviceEnd = new Date(slotStart.getTime() + (serviceDuration * 60000));
+  
+  // Vérifier s'il y a des réservations qui entreraient en conflit
+  const conflictingBookings = await Booking.count({
+    include: [{
+      model: TimeSlot,
+      as: 'timeSlot',
+      where: { 
+        date: slot.date,
+        [Op.or]: [
+          // Créneaux qui commencent pendant notre service
+          {
+            startTime: {
+              [Op.between]: [
+                slot.startTime,
+                serviceEnd.toTimeString().slice(0, 5)
+              ]
+            }
+          },
+          // Créneaux qui se terminent pendant notre service
+          {
+            [Op.and]: [
+              { startTime: { [Op.lt]: slot.startTime } },
+              { endTime: { [Op.gt]: slot.startTime } }
+            ]
+          }
+        ]
+      }
+    }],
+    where: {
+      status: { [Op.notIn]: ['cancelled'] },
+      [Op.or]: [
+        // Réservations existantes qui chevaucheraient
+        {
+          bookingDate: {
+            [Op.between]: [slotStart, serviceEnd]
+          }
+        },
+        // Réservations qui commencent avant et finissent pendant notre créneau
+        {
+          [Op.and]: [
+            { bookingDate: { [Op.lt]: slotStart } },
+            sequelize.literal(`DATE_ADD(bookingDate, INTERVAL duration MINUTE) > '${slotStart.toISOString()}'`)
+          ]
+        }
+      ]
+    }
+  });
+  
+  return conflictingBookings === 0;
+};
 
 // Récupérer les créneaux disponibles (PUBLIC)
 const getAvailableTimeSlots = async (req, res) => {
   try {
     const { date, serviceId, startDate, endDate } = req.query;
     
+    // Déterminer la durée du service
+    let serviceDuration = 60; // Par défaut
+    let service = null;
+    
+    if (serviceId) {
+      service = await Service.findByPk(serviceId);
+      if (service) {
+        serviceDuration = getServiceDuration(service.category);
+      }
+    }
+    
     let whereConditions = {
       isAvailable: true,
-      // Seulement les créneaux où il reste de la place
       currentBookings: {
-        [Op.lt]: { [Op.col]: 'TimeSlot.maxBookings' }
+        [Op.lt]: sequelize.col('TimeSlot.maxBookings')
       }
     };
     
@@ -56,8 +131,34 @@ const getAvailableTimeSlots = async (req, res) => {
       order: [['date', 'ASC'], ['startTime', 'ASC']]
     });
     
+    // ✅ FILTRAGE INTELLIGENT : Vérifier que chaque créneau peut vraiment accueillir le service
+    const availableSlots = [];
+    
+    for (const slot of timeSlots) {
+      const canAccommodate = await canSlotAccommodateService(slot, serviceDuration);
+      
+      if (canAccommodate) {
+        const slotStart = new Date(`${slot.date}T${slot.startTime}`);
+        const serviceEnd = new Date(slotStart.getTime() + (serviceDuration * 60000));
+        
+        availableSlots.push({
+          ...slot.toJSON(),
+          estimatedEndTime: serviceEnd.toLocaleTimeString('fr-FR', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }),
+          serviceDuration,
+          serviceDetails: service ? {
+            name: service.name,
+            category: service.category,
+            price: service.price
+          } : null
+        });
+      }
+    }
+    
     // Grouper par date pour une meilleure présentation
-    const groupedSlots = timeSlots.reduce((acc, slot) => {
+    const groupedSlots = availableSlots.reduce((acc, slot) => {
       const dateKey = slot.date;
       if (!acc[dateKey]) {
         acc[dateKey] = [];
@@ -68,11 +169,18 @@ const getAvailableTimeSlots = async (req, res) => {
     
     res.json({
       success: true,
-      message: 'Créneaux disponibles récupérés avec succès',
+      message: `Créneaux disponibles pour un service de ${serviceDuration} minutes`,
       data: {
-        slots: timeSlots,
+        slots: availableSlots,
         groupedByDate: groupedSlots,
-        totalSlots: timeSlots.length
+        totalSlots: availableSlots.length,
+        serviceDuration,
+        serviceInfo: service ? {
+          id: service.id,
+          name: service.name,
+          category: service.category,
+          duration: serviceDuration
+        } : null
       }
     });
   } catch (error) {
@@ -149,7 +257,7 @@ const createTimeSlots = async (req, res) => {
           startTime,
           endTime,
           serviceId: serviceId || null,
-          maxBookings: Math.max(1, Math.min(10, maxBookings)), // Entre 1 et 10
+          maxBookings: Math.max(1, Math.min(10, maxBookings)),
           isAvailable: true,
           currentBookings: 0
         });
@@ -177,6 +285,95 @@ const createTimeSlots = async (req, res) => {
   }
 };
 
+// Créer des créneaux automatiquement pour une période (ADMIN)
+const generateTimeSlots = async (req, res) => {
+  try {
+    const { startDate, endDate, weekDays = [1, 2, 3, 4, 5, 6] } = req.body; // 1=lundi, 6=samedi
+    
+    if (!startDate || !endDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Date de début et fin requises'
+      });
+    }
+    
+    const slots = [];
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    
+    // Horaires par défaut
+    const defaultSchedule = {
+      weekdays: [ // Lundi à Vendredi
+        { start: '09:00', end: '10:30' },
+        { start: '10:30', end: '12:00' },
+        { start: '14:00', end: '15:30' },
+        { start: '15:30', end: '17:00' },
+        { start: '17:00', end: '18:30' }
+      ],
+      saturday: [ // Samedi
+        { start: '09:00', end: '10:30' },
+        { start: '10:30', end: '12:00' },
+        { start: '14:00', end: '15:30' },
+        { start: '15:30', end: '17:00' }
+      ]
+    };
+    
+    for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
+      const dayOfWeek = date.getDay(); // 0=dimanche, 1=lundi, etc.
+      
+      // Ignorer les dimanches et les jours non sélectionnés
+      if (dayOfWeek === 0 || !weekDays.includes(dayOfWeek)) continue;
+      
+      const dateString = date.toISOString().split('T')[0];
+      const schedule = dayOfWeek === 6 ? defaultSchedule.saturday : defaultSchedule.weekdays;
+      
+      for (const timeSlot of schedule) {
+        // Vérifier si le créneau existe déjà
+        const existing = await TimeSlot.findOne({
+          where: {
+            date: dateString,
+            startTime: timeSlot.start,
+            endTime: timeSlot.end
+          }
+        });
+        
+        if (!existing) {
+          slots.push({
+            date: dateString,
+            startTime: timeSlot.start,
+            endTime: timeSlot.end,
+            isAvailable: true,
+            maxBookings: 1,
+            currentBookings: 0
+          });
+        }
+      }
+    }
+    
+    if (slots.length > 0) {
+      await TimeSlot.bulkCreate(slots);
+    }
+    
+    res.json({
+      success: true,
+      message: `${slots.length} créneaux générés avec succès`,
+      data: {
+        period: `${startDate} à ${endDate}`,
+        slotsCreated: slots.length,
+        weekDaysIncluded: weekDays
+      }
+    });
+    
+  } catch (error) {
+    console.error('Erreur generateTimeSlots:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la génération des créneaux',
+      error: error.message
+    });
+  }
+};
+
 // Mettre à jour la disponibilité d'un créneau (ADMIN)
 const updateTimeSlotAvailability = async (req, res) => {
   try {
@@ -196,9 +393,7 @@ const updateTimeSlotAvailability = async (req, res) => {
           model: Booking,
           as: 'bookings',
           where: {
-            status: {
-              [Op.notIn]: ['cancelled']
-            }
+            status: { [Op.notIn]: ['cancelled'] }
           },
           required: false
         }
@@ -251,9 +446,7 @@ const deleteTimeSlot = async (req, res) => {
           model: Booking,
           as: 'bookings',
           where: {
-            status: {
-              [Op.notIn]: ['cancelled']
-            }
+            status: { [Op.notIn]: ['cancelled'] }
           },
           required: false
         }
@@ -314,6 +507,19 @@ const getAllTimeSlots = async (req, res) => {
           model: Service,
           as: 'service',
           attributes: ['id', 'name', 'category']
+        },
+        {
+          model: Booking,
+          as: 'bookings',
+          where: { status: { [Op.notIn]: ['cancelled'] } },
+          required: false,
+          include: [
+            {
+              model: Client,
+              as: 'client',
+              attributes: ['firstName', 'lastName']
+            }
+          ]
         }
       ],
       order: [['date', 'ASC'], ['startTime', 'ASC']],
@@ -321,10 +527,26 @@ const getAllTimeSlots = async (req, res) => {
       offset: offset
     });
     
+    // Enrichir les données avec des informations utiles
+    const enrichedSlots = timeSlots.map(slot => {
+      const slotData = slot.toJSON();
+      return {
+        ...slotData,
+        occupancyRate: slot.maxBookings > 0 ? (slot.currentBookings / slot.maxBookings) * 100 : 0,
+        isFull: slot.currentBookings >= slot.maxBookings,
+        bookingsDetails: slotData.bookings?.map(booking => ({
+          id: booking.id,
+          clientName: `${booking.client.firstName} ${booking.client.lastName}`,
+          duration: booking.duration,
+          status: booking.status
+        })) || []
+      };
+    });
+    
     res.json({
       success: true,
       message: 'Créneaux récupérés avec succès',
-      data: timeSlots,
+      data: enrichedSlots,
       pagination: {
         totalItems: count,
         totalPages: Math.ceil(count / limit),
@@ -342,10 +564,72 @@ const getAllTimeSlots = async (req, res) => {
   }
 };
 
+// Obtenir les statistiques des créneaux (ADMIN)
+const getTimeSlotsStats = async (req, res) => {
+  try {
+    const today = new Date().toISOString().split('T')[0];
+    
+    const totalSlots = await TimeSlot.count();
+    const availableSlots = await TimeSlot.count({ 
+      where: { 
+        isAvailable: true,
+        date: { [Op.gte]: today }
+      } 
+    });
+    const fullyBookedSlots = await TimeSlot.count({
+      where: {
+        currentBookings: { [Op.gte]: sequelize.col('maxBookings') },
+        date: { [Op.gte]: today }
+      }
+    });
+    
+    // Créneaux les plus demandés
+    const popularSlots = await TimeSlot.findAll({
+      attributes: [
+        'startTime',
+        [sequelize.fn('COUNT', sequelize.col('bookings.id')), 'bookingCount'],
+        [sequelize.fn('AVG', sequelize.col('currentBookings')), 'avgOccupancy']
+      ],
+      include: [
+        {
+          model: Booking,
+          as: 'bookings',
+          where: { status: { [Op.in]: ['confirmed', 'completed'] } },
+          attributes: []
+        }
+      ],
+      group: ['TimeSlot.startTime'],
+      order: [[sequelize.literal('bookingCount'), 'DESC']],
+      limit: 5
+    });
+    
+    res.json({
+      success: true,
+      message: 'Statistiques des créneaux récupérées',
+      data: {
+        total: totalSlots,
+        available: availableSlots,
+        fullyBooked: fullyBookedSlots,
+        occupancyRate: totalSlots > 0 ? ((totalSlots - availableSlots) / totalSlots * 100).toFixed(1) : 0,
+        popularTimeSlots: popularSlots
+      }
+    });
+  } catch (error) {
+    console.error('Erreur getTimeSlotsStats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des statistiques',
+      error: error.message
+    });
+  }
+};
+
 module.exports = {
   getAvailableTimeSlots,
   createTimeSlots,
+  generateTimeSlots,
   updateTimeSlotAvailability,
   deleteTimeSlot,
-  getAllTimeSlots
+  getAllTimeSlots,
+  getTimeSlotsStats
 };

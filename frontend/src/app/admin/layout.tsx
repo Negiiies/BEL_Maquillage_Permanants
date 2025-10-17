@@ -1,4 +1,3 @@
-// frontend/src/app/admin/layout.tsx
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -22,19 +21,21 @@ interface AdminLayoutProps {
 }
 
 export default function AdminLayout({ children }: AdminLayoutProps) {
+  // ✅ TOUS les hooks EN PREMIER (avant toute condition)
   const pathname = usePathname()
-  
-  // Bypass pour la page login
-  if (pathname === '/admin/login') {
-    return <>{children}</>
-  }
-  
+  const router = useRouter()
   const [isSidebarOpen, setIsSidebarOpen] = useState(false)
   const [user, setUser] = useState<any>(null)
-  const router = useRouter()
+  const [loading, setLoading] = useState(true)
 
-  // Vérifier l'authentification admin au chargement
+  // ✅ Condition APRÈS les hooks
   useEffect(() => {
+    // Ne pas faire la vérification pour la page login
+    if (pathname === '/admin/login') {
+      setLoading(false)
+      return
+    }
+
     const checkAuth = async () => {
       const token = localStorage.getItem('adminToken')
       if (!token) {
@@ -44,9 +45,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       try {
         const response = await fetch('http://localhost:5000/api/admin/verify', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+          headers: { 'Authorization': 'Bearer ' + token }
         })
         
         if (response.ok) {
@@ -59,11 +58,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       } catch (error) {
         console.error('Erreur vérification auth:', error)
         router.push('/admin/login')
+      } finally {
+        setLoading(false)
       }
     }
 
     checkAuth()
-  }, [router])
+  }, [router, pathname])
 
   const handleLogout = () => {
     localStorage.removeItem('adminToken')
@@ -80,17 +81,29 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Paramètres', href: '/admin/settings', icon: Settings },
   ]
 
-  if (!user) {
+  // ✅ Condition de rendu APRÈS tous les hooks
+  if (pathname === '/admin/login') {
+    return <>{children}</>
+  }
+
+  if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
       </div>
     )
   }
 
+  if (!user) {
+    return null
+  }
+
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Sidebar Mobile Overlay */}
+    <div className="min-h-screen bg-gray-100 flex">
+      {/* ... reste du code identique ... */}
       {isSidebarOpen && (
         <div 
           className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
@@ -98,37 +111,32 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         />
       )}
 
-      {/* Sidebar */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-slate-800 transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
         isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
-      } lg:static lg:inset-0`}>
+      } lg:static lg:flex lg:flex-col`}>
         
-        {/* Logo */}
-        <div className="flex items-center justify-between h-16 px-4 bg-gray-800">
-          <div className="flex items-center">
-            <div className="text-white font-bold text-xl">BEL Admin</div>
-          </div>
-          <button
-            onClick={() => setIsSidebarOpen(false)}
-            className="lg:hidden text-gray-400 hover:text-white"
-          >
+        <div className="flex items-center justify-between h-16 px-6 bg-slate-900 border-b border-slate-700">
+          <div className="text-white font-bold text-xl">BEL Admin</div>
+          <button onClick={() => setIsSidebarOpen(false)} className="lg:hidden text-gray-400 hover:text-white">
             <X className="h-6 w-6" />
           </button>
         </div>
 
-        {/* Navigation */}
-        <nav className="mt-8">
-          <div className="px-4 space-y-2">
+        <nav className="flex-1 px-4 py-6 overflow-y-auto">
+          <div className="space-y-2">
             {navigation.map((item) => {
               const Icon = item.icon
+              const isActive = pathname === item.href
               return (
                 <Link
                   key={item.name}
                   href={item.href}
-                  className="group flex items-center px-2 py-2 text-sm font-medium rounded-md text-gray-300 hover:bg-gray-700 hover:text-white transition-colors"
+                  className={`group flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${
+                    isActive ? 'bg-slate-700 text-white' : 'text-gray-300 hover:bg-slate-700 hover:text-white'
+                  }`}
                   onClick={() => setIsSidebarOpen(false)}
                 >
-                  <Icon className="mr-3 h-5 w-5" />
+                  <Icon className="mr-3 h-5 w-5 flex-shrink-0" />
                   {item.name}
                 </Link>
               )
@@ -136,57 +144,39 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
           </div>
         </nav>
 
-        {/* User info */}
-        <div className="absolute bottom-0 w-full p-4 bg-gray-800">
-          <div className="flex items-center">
-            <div className="flex-shrink-0">
-              <div className="h-8 w-8 rounded-full bg-gray-600 flex items-center justify-center">
+        <div className="mt-auto p-4 bg-slate-900 border-t border-slate-700">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3 flex-1 min-w-0">
+              <div className="h-8 w-8 rounded-full bg-slate-600 flex items-center justify-center flex-shrink-0">
                 <span className="text-white text-sm font-medium">
-                  {user?.email?.charAt(0).toUpperCase()}
+                  {user?.email?.charAt(0).toUpperCase() || 'A'}
                 </span>
               </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate" title={user?.email}>
+                  {user?.email}
+                </p>
+              </div>
             </div>
-            <div className="ml-3 flex-1">
-              <p className="text-sm font-medium text-white truncate">
-                {user?.email}
-              </p>
-            </div>
-            <button
-              onClick={handleLogout}
-              className="text-gray-400 hover:text-white"
-            >
+            <button onClick={handleLogout} className="text-gray-400 hover:text-white p-2 rounded-lg hover:bg-slate-700 transition-colors flex-shrink-0" title="Se déconnecter">
               <LogOut className="h-4 w-4" />
             </button>
           </div>
         </div>
       </div>
 
-      {/* Main content */}
-      <div className="lg:ml-64 flex flex-col min-h-screen">
-        {/* Top bar */}
-        <div className="bg-white shadow-sm border-b border-gray-200">
-          <div className="px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <button
-                onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden text-gray-500 hover:text-gray-700"
-              >
-                <Menu className="h-6 w-6" />
-              </button>
-              
-              <div className="flex-1 flex justify-end">
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-700">
-                    Connecté en tant qu'administrateur
-                  </span>
-                </div>
-              </div>
-            </div>
+      <div className="flex-1 flex flex-col min-w-0">
+        <div className="bg-white shadow-sm border-b border-gray-200 lg:hidden">
+          <div className="px-4 h-16 flex items-center justify-between">
+            <button onClick={() => setIsSidebarOpen(true)} className="text-gray-500 hover:text-gray-700">
+              <Menu className="h-6 w-6" />
+            </button>
+            <span className="text-sm font-medium text-gray-700">BEL Admin</span>
+            <div className="w-6" />
           </div>
         </div>
 
-        {/* Page content */}
-        <main className="flex-1 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-auto">
           {children}
         </main>
       </div>
