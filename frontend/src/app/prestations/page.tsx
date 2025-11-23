@@ -1,406 +1,245 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
-import { ChevronRight, Clock, Star, Sparkles, Eye, Paintbrush2 } from 'lucide-react'
-import LogoTransition from '../../components/LogoTransition'
+import { useRouter } from 'next/navigation'
+import { Sparkles, Heart, Eye, Clock, ArrowRight } from 'lucide-react'
+import LogoTransition from '@/components/LogoTransition'
+import { API_URL } from '@/lib/config'
+
+interface Service {
+  id: number
+  name: string
+  description: string
+  price: number
+  duration: number
+  category: string
+  imageUrl?: string
+  isActive: boolean
+}
+
+const CATEGORY_CONFIG = {
+  sourcils: {
+    label: 'Sourcils',
+    icon: Sparkles,
+    color: 'from-amber-50 to-orange-50'
+  },
+  levres: {
+    label: 'Lèvres',
+    icon: Heart,
+    color: 'from-rose-50 to-pink-50'
+  },
+  cils: {
+    label: 'Cils',
+    icon: Eye,
+    color: 'from-blue-50 to-indigo-50'
+  }
+}
+
 export default function PrestationsPage() {
-  const [showTransition, setShowTransition] = useState(true)
+  const router = useRouter()
   const [showContent, setShowContent] = useState(false)
-  const [scrollProgress, setScrollProgress] = useState(0)
+  const [services, setServices] = useState<Service[]>([])
+  const [loading, setLoading] = useState(true)
+  const [activeTab, setActiveTab] = useState<'sourcils' | 'levres' | 'cils'>('sourcils')
 
   useEffect(() => {
-    const transitionTimer = setTimeout(() => {
-      setShowTransition(false)
-      setShowContent(true)
-    }, 2500)
-
-    return () => clearTimeout(transitionTimer)
+    const fetchServices = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/services`)
+        const data = await response.json()
+        if (data.success) {
+           setServices(data.data)
+        }
+      } catch (error) {
+        console.error('Erreur chargement services:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchServices()
   }, [])
 
-  useEffect(() => {
-    if (!showContent) return
+  const filteredServices = services.filter(s => s.category === activeTab)
 
-    const handleScroll = () => {
-      const scrollY = window.scrollY
-      const windowHeight = window.innerHeight
-      const progress = Math.min(scrollY / (windowHeight * 0.6), 1)
-      setScrollProgress(progress)
-    }
+  const handleReserve = (serviceId: number) => {
+    router.push(`/reserver?service=${serviceId}`)
+  }
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [showContent])
-
-  if (showTransition) {
+  if (loading) {
     return (
-      <div className="fixed inset-0 bg-black z-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-pulse">
-            <img 
-              src="/images/Logo .svg" 
-              alt="BEL Institut" 
-              className="w-32 md:w-48 lg:w-64 h-auto mx-auto drop-shadow-2xl animate-[fadeInScale_2s_ease-in-out] filter brightness-0 invert"
-            />
-          </div>
-          
-          <div className="mt-6 opacity-0 animate-[fadeIn_1s_ease-in_1s_forwards]">
-            <p className="text-white text-lg font-light tracking-[0.3em] uppercase">
-              Prestations
-            </p>
-          </div>
-        </div>
-
-        <style jsx>{`
-          @keyframes fadeInScale {
-            0% { opacity: 0; transform: scale(0.8); }
-            50% { opacity: 1; transform: scale(1.1); }
-            100% { opacity: 1; transform: scale(1); }
-          }
-          
-          @keyframes fadeIn {
-            0% { opacity: 0; transform: translateY(20px); }
-            100% { opacity: 1; transform: translateY(0); }
-          }
-        `}</style>
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900"></div>
       </div>
     )
   }
 
   return (
-    <div className={`min-h-screen ${showContent ? 'animate-[slideUp_0.8s_ease-out]' : 'opacity-0'}`}>
-      {/* Hero Section avec effet Dior */}
-      <section className="relative h-screen overflow-hidden">
-        <div className="absolute inset-0">
-          {/* Vidéo principale */}
-          <div 
-            className="absolute inset-0 transition-all duration-1000 ease-out"
-            style={{ 
-              opacity: 1 - scrollProgress,
-              transform: `scale(${1 - scrollProgress * 0.1})`
-            }}
-          >
-            <video 
-              className="w-full h-full object-cover"
-              autoPlay
-              muted
-              loop
-              playsInline
-            >
-              <source src="/videos/testh.mp4" type="video/mp4" />
-            </video>
-            <div className="absolute inset-0 bg-black bg-opacity-30"></div>
-          </div>
+    <>
+      {!showContent && (
+        <LogoTransition 
+          pageName="Prestations" 
+          onComplete={() => setShowContent(true)}
+        />
+      )}
 
-          {/* Les 3 vidéos qui apparaissent au scroll */}
-          <div 
-            className="absolute inset-0 flex"
-            style={{ 
-              opacity: scrollProgress,
-              transform: `scale(${0.9 + scrollProgress * 0.1})`
-            }}
-          >
-            {/* Vidéo 1 - Maquillage permanent */}
-            <div className="flex-1 relative overflow-hidden">
-              <video 
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-              >
-                <source src="/videos/testv.mp4" type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-              <div className="absolute inset-0 flex flex-col justify-end p-8">
-                <div className="text-white">
-                  <h3 className="text-xl md:text-2xl font-light mb-2 font-serif">
-                    Maquillage Permanent
-                  </h3>
-                  <p className="text-sm opacity-90 mb-4">
-                    Sourcils • Lèvres • Eye-liner
-                  </p>
-                  <button className="text-xs tracking-wider uppercase underline underline-offset-4 hover:no-underline transition-all">
-                    Découvrir
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Vidéo 2 - Extensions */}
-            <div className="flex-1 relative overflow-hidden">
-              <video 
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-              >
-                <source src="/videos/testv1.mp4" type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-              <div className="absolute inset-0 flex flex-col justify-end p-8">
-                <div className="text-white">
-                  <h3 className="text-xl md:text-2xl font-light mb-2 font-serif">
-                    Extensions de Cils
-                  </h3>
-                  <p className="text-sm opacity-90 mb-4">
-                    Volume • Longueur • Intensité
-                  </p>
-                  <button className="text-xs tracking-wider uppercase underline underline-offset-4 hover:no-underline transition-all">
-                    Découvrir
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Vidéo 3 - Soins */}
-            <div className="flex-1 relative overflow-hidden">
-              <video 
-                className="w-full h-full object-cover"
-                autoPlay
-                muted
-                loop
-                playsInline
-              >
-                <source src="/videos/testv2.mp4" type="video/mp4" />
-              </video>
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent"></div>
-              <div className="absolute inset-0 flex flex-col justify-end p-8">
-                <div className="text-white">
-                  <h3 className="text-xl md:text-2xl font-light mb-2 font-serif">
-                    Soins du Regard
-                  </h3>
-                  <p className="text-sm opacity-90 mb-4">
-                    Teinture • Rehaussement • Épilation
-                  </p>
-                  <button className="text-xs tracking-wider uppercase underline underline-offset-4 hover:no-underline transition-all">
-                    Découvrir
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Contenu central */}
-        <div 
-          className="relative z-10 h-full flex items-center justify-center text-center text-white px-4"
-          style={{ 
-            opacity: scrollProgress < 0.5 ? 1 - (scrollProgress * 2) : 0,
-            transform: `translateY(${scrollProgress * 50}px)`
-          }}
-        >
-          <div className="max-w-4xl">
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-light mb-6 leading-tight font-serif tracking-wide">
-              L'Art de la Beauté
+      {showContent && (
+        <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white animate-[slideUp_0.8s_ease-out]">
+          {/* Header */}
+          <div className="pt-32 pb-16 px-4 text-center">
+            <h1 className="text-5xl md:text-6xl font-light text-gray-900 mb-6 tracking-wide">
+              Nos Prestations
             </h1>
-            
-            <p className="text-lg md:text-xl font-light mb-8 opacity-90 max-w-2xl mx-auto tracking-wide">
-              Révélez votre beauté naturelle
-            </p>
-
-            <button className="text-sm tracking-[0.3em] uppercase text-white underline underline-offset-8 hover:no-underline transition-all duration-300">
-              Découvrir la collection
-            </button>
-          </div>
-        </div>
-
-        {/* Scroll indicator */}
-        <div 
-          className="absolute bottom-8 left-1/2 transform -translate-x-1/2 text-white animate-bounce"
-          style={{ opacity: 1 - scrollProgress }}
-        >
-          <div className="w-6 h-10 border-2 border-white rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-2 animate-pulse"></div>
-          </div>
-        </div>
-      </section>
-
-      {/* Section Nos Services */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              Nos Expertises
-            </h2>
-            <div className="w-24 h-1 bg-rose-600 mx-auto mb-6"></div>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Des techniques avancées pour sublimer votre beauté naturelle
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto font-light leading-relaxed">
+              Découvrez nos soins d'exception, pensés pour sublimer votre beauté naturelle
             </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-            {/* Maquillage Permanent */}
-            <div className="group relative bg-gradient-to-br from-rose-50 to-pink-50 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-br from-rose-600/5 to-pink-600/5 group-hover:from-rose-600/10 group-hover:to-pink-600/10 transition-all duration-500"></div>
-              
-              <div className="relative p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-rose-500 to-pink-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Paintbrush2 className="h-8 w-8 text-white" />
-                </div>
+          {/* Onglets */}
+          <div className="max-w-7xl mx-auto px-4 mb-16">
+            <div className="flex justify-center gap-4 flex-wrap">
+              {(Object.keys(CATEGORY_CONFIG) as Array<keyof typeof CATEGORY_CONFIG>).map((category) => {
+                const config = CATEGORY_CONFIG[category]
+                const Icon = config.icon
+                const isActive = activeTab === category
                 
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Maquillage Permanent
-                </h3>
-                
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Sourcils, lèvres et eye-liner parfaitement dessinés pour un réveil en beauté chaque matin.
-                </p>
-
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-rose-400 rounded-full mr-3"></div>
-                    <span>Microblading sourcils</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-rose-400 rounded-full mr-3"></div>
-                    <span>Powder brows</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-rose-400 rounded-full mr-3"></div>
-                    <span>Lèvres naturelles</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-rose-400 rounded-full mr-3"></div>
-                    <span>Eye-liner fin</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">À partir de 300€</span>
-                  <button className="bg-gradient-to-r from-rose-500 to-pink-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:from-rose-600 hover:to-pink-600 transition-all duration-300 group-hover:scale-105">
-                    Découvrir
+                return (
+                  <button
+                    key={category}
+                    onClick={() => setActiveTab(category)}
+                    className={`flex items-center gap-3 px-8 py-4 rounded-full transition-all duration-300 ${
+                      isActive
+                        ? 'bg-gray-900 text-white shadow-xl scale-105'
+                        : 'bg-white text-gray-600 hover:bg-gray-100 shadow-md hover:shadow-lg'
+                    }`}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'animate-pulse' : ''}`} />
+                    <span className="font-light text-lg tracking-wide">{config.label}</span>
                   </button>
-                </div>
-              </div>
+                )
+              })}
             </div>
+          </div>
 
-            {/* Extensions de Cils */}
-            <div className="group relative bg-gradient-to-br from-purple-50 to-indigo-50 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-br from-purple-600/5 to-indigo-600/5 group-hover:from-purple-600/10 group-hover:to-indigo-600/10 transition-all duration-500"></div>
-              
-              <div className="relative p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-indigo-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Eye className="h-8 w-8 text-white" />
-                </div>
-                
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Extensions de Cils
-                </h3>
-                
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Un regard intensifié et magnifié grâce à nos techniques d'extensions personnalisées.
+          {/* Services - Layout Zigzag */}
+          <div className="max-w-7xl mx-auto px-4 pb-24 space-y-24">
+            {filteredServices.length === 0 ? (
+              <div className="text-center py-20">
+                <p className="text-xl text-gray-500 font-light">
+                  Aucune prestation disponible pour le moment
                 </p>
-
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
-                    <span>Extensions classiques</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
-                    <span>Volume russe</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
-                    <span>Méga volume</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-purple-400 rounded-full mr-3"></div>
-                    <span>Effet wet look</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">À partir de 80€</span>
-                  <button className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:from-purple-600 hover:to-indigo-600 transition-all duration-300 group-hover:scale-105">
-                    Découvrir
-                  </button>
-                </div>
               </div>
-            </div>
-
-            {/* Soins du Regard */}
-            <div className="group relative bg-gradient-to-br from-emerald-50 to-teal-50 rounded-3xl overflow-hidden shadow-lg hover:shadow-2xl transition-all duration-500">
-              <div className="absolute inset-0 bg-gradient-to-br from-emerald-600/5 to-teal-600/5 group-hover:from-emerald-600/10 group-hover:to-teal-600/10 transition-all duration-500"></div>
-              
-              <div className="relative p-8">
-                <div className="w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300">
-                  <Sparkles className="h-8 w-8 text-white" />
-                </div>
+            ) : (
+              filteredServices.map((service, index) => {
+                const isEven = index % 2 === 0
+                const config = CATEGORY_CONFIG[activeTab]
                 
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                  Soins du Regard
-                </h3>
-                
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  Prenez soin de vos yeux avec nos soins spécialisés pour un regard reposé et éclatant.
-                </p>
+                return (
+                  <div
+                    key={service.id}
+                    className={`flex flex-col ${
+                      isEven ? 'lg:flex-row' : 'lg:flex-row-reverse'
+                    } gap-12 items-center`}
+                  >
+                    {/* Image */}
+                    <div className="w-full lg:w-1/2">
+                      <div className="relative group overflow-hidden rounded-3xl shadow-2xl">
+                        {service.imageUrl ? (
+                          <img
+                            src={`${API_URL}${service.imageUrl}`}
+                            alt={service.name}
+                            className="w-full h-[500px] object-cover transition-transform duration-700 group-hover:scale-110"
+                            onError={(e) => {
+                              e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="800" height="500"%3E%3Crect fill="%23f3f4f6" width="800" height="500"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" fill="%239ca3af" font-size="24"%3E' + service.name + '%3C/text%3E%3C/svg%3E'
+                            }}
+                          />
+                        ) : (
+                          <div className={`w-full h-[500px] bg-gradient-to-br ${config.color} flex items-center justify-center`}>
+                            <div className="text-center">
+                              <config.icon className="w-24 h-24 mx-auto text-gray-400 mb-4" />
+                              <p className="text-gray-500 font-light text-lg">{service.name}</p>
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* Overlay gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                      </div>
+                    </div>
 
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full mr-3"></div>
-                    <span>Teinture cils et sourcils</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full mr-3"></div>
-                    <span>Rehaussement de cils</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full mr-3"></div>
-                    <span>Épilation sourcils</span>
-                  </div>
-                  <div className="flex items-center text-sm text-gray-600">
-                    <div className="w-2 h-2 bg-emerald-400 rounded-full mr-3"></div>
-                    <span>Soin contour des yeux</span>
-                  </div>
-                </div>
+                    {/* Contenu */}
+                    <div className="w-full lg:w-1/2 space-y-6">
+                      {/* Titre */}
+                      <h2 className="text-4xl md:text-5xl font-light text-gray-900 tracking-wide">
+                        {service.name}
+                      </h2>
 
-                <div className="flex items-center justify-between">
-                  <span className="text-lg font-bold text-gray-900">À partir de 35€</span>
-                  <button className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-2 rounded-full text-sm font-medium hover:from-emerald-600 hover:to-teal-600 transition-all duration-300 group-hover:scale-105">
-                    Découvrir
-                  </button>
-                </div>
-              </div>
+                      {/* Description */}
+                      <p className="text-lg text-gray-600 leading-relaxed font-light">
+                        {service.description || 'Une prestation d\'exception pour sublimer votre beauté naturelle.'}
+                      </p>
+
+                      {/* Infos */}
+                      <div className="flex items-center gap-8 pt-4">
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-5 h-5 text-gray-500" />
+                          <span className="text-gray-700 font-light">{service.duration} minutes</span>
+                        </div>
+                        <div className="text-3xl font-light text-gray-900">
+                          {service.price}€
+                        </div>
+                      </div>
+
+                      {/* Bouton Réserver */}
+                      <button
+                        onClick={() => handleReserve(service.id)}
+                        className="group mt-8 bg-gray-900 text-white px-10 py-4 rounded-full font-light text-lg tracking-wide hover:bg-gray-800 transition-all duration-300 flex items-center gap-3 shadow-xl hover:shadow-2xl hover:scale-105"
+                      >
+                        <span>Réserver</span>
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      </button>
+
+                      {/* Ligne décorative */}
+                      <div className="pt-8">
+                        <div className={`h-1 w-24 bg-gradient-to-r ${
+                          activeTab === 'sourcils' ? 'from-amber-400 to-orange-400' :
+                          activeTab === 'levres' ? 'from-rose-400 to-pink-400' :
+                          'from-blue-400 to-indigo-400'
+                        } rounded-full`}></div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+          </div>
+
+          {/* CTA final */}
+          <div className="max-w-4xl mx-auto px-4 pb-24 text-center">
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-12 shadow-2xl">
+              <h3 className="text-3xl font-light text-white mb-6 tracking-wide">
+                Prête à sublimer votre beauté ?
+              </h3>
+              <p className="text-gray-300 font-light text-lg mb-8 max-w-2xl mx-auto">
+                Nos experts sont à votre disposition pour vous conseiller et vous accompagner dans votre transformation.
+              </p>
+              <button
+                onClick={() => router.push('/contact')}
+                className="bg-white text-gray-900 px-10 py-4 rounded-full font-light text-lg tracking-wide hover:bg-gray-100 transition-all duration-300 shadow-xl hover:shadow-2xl hover:scale-105"
+              >
+                Nous contacter
+              </button>
             </div>
           </div>
         </div>
-      </section>
+      )}
 
-      {/* CTA Final */}
-      <section className="py-16 bg-gradient-to-r from-rose-600 via-pink-600 to-purple-600">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-4">
-            Prête à Vous Sublimer ?
-          </h2>
-          <p className="text-xl text-rose-100 mb-8">
-            Réservez votre consultation gratuite et découvrez quelle prestation vous convient le mieux
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link
-              href="/contact"
-              className="bg-white text-rose-600 px-8 py-4 rounded-full text-lg font-medium hover:bg-gray-100 transition-colors duration-200"
-            >
-              Réserver ma consultation
-            </Link>
-            <Link
-              href="/tarifs"
-              className="border-2 border-white text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-white hover:text-rose-600 transition-all duration-300"
-            >
-              Voir les tarifs
-            </Link>
-          </div>
-        </div>
-      </section>
-
+      {/* Animation slideUp */}
       <style jsx>{`
         @keyframes slideUp {
           0% { opacity: 0; transform: translateY(50px); }
           100% { opacity: 1; transform: translateY(0); }
         }
       `}</style>
-    </div>
+    </>
   )
 }

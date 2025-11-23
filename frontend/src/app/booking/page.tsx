@@ -110,7 +110,7 @@ export default function BookingPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white pt-20">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white pt-24">
       <div className="max-w-4xl mx-auto px-4 py-12">
         {/* Header */}
         <div className="text-center mb-12">

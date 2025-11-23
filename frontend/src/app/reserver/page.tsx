@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
-import { Calendar, Clock, Check, ArrowRight, ArrowLeft } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Calendar, Clock, Check, ArrowRight, ArrowLeft, Sparkles, Heart, Eye } from 'lucide-react'
+import { API_URL } from '@/lib/config'
 
 interface Service {
   id: number
   name: string
   description: string
   price: number
+  duration: number
   category: string
 }
 
@@ -19,11 +21,36 @@ interface TimeSlot {
   endTime: string
 }
 
+const CATEGORY_ICONS: { [key: string]: any } = {
+  'sourcils': Sparkles,
+  'levres': Heart,
+  'cils': Eye
+}
+
+const CATEGORY_LABELS: { [key: string]: string } = {
+  'sourcils': 'Sourcils',
+  'levres': 'Lèvres',
+  'cils': 'Cils'
+}
+
+const CATEGORY_MESSAGES: { [key: string]: string } = {
+  'sourcils': 'Sourcils sublimés ✨',
+  'levres': 'Des lèvres parfaites 💋',
+  'cils': 'Préparez votre regard 👁️'
+}
+
 export default function ReservationPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const preSelectedServiceId = searchParams.get('service')
+  
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  
+  // ✨ États pour l'animation vidéo
+  const [showAnimation, setShowAnimation] = useState(false)
+  const [animationType, setAnimationType] = useState<'cils' | 'levres' | 'sourcils' | null>(null)
   
   const [services, setServices] = useState<Service[]>([])
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
@@ -36,7 +63,7 @@ export default function ReservationPage() {
   useEffect(() => {
     const token = localStorage.getItem('clientToken')
     if (!token) {
-      router.push('/auth/login')
+      router.push('/auth/login?redirect=/reserver')
     }
   }, [router])
 
@@ -44,7 +71,7 @@ export default function ReservationPage() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/services')
+        const response = await fetch(`${API_URL}/api/services`)
         const data = await response.json()
         if (data.success) {
           setServices(data.data)
@@ -56,13 +83,23 @@ export default function ReservationPage() {
     fetchServices()
   }, [])
 
+  // Gérer la pré-sélection depuis /prestations
+  useEffect(() => {
+    if (preSelectedServiceId && services.length > 0) {
+      const service = services.find(s => s.id === parseInt(preSelectedServiceId))
+      if (service) {
+        handleServiceSelect(service)
+      }
+    }
+  }, [preSelectedServiceId, services])
+
   // Charger les créneaux quand un service est sélectionné
   useEffect(() => {
-    if (selectedService) {
+    if (selectedService && step === 2) {
       const fetchTimeSlots = async () => {
         try {
           const response = await fetch(
-            `http://localhost:5000/api/timeslots/available?serviceId=${selectedService.id}`
+            `${API_URL}/api/timeslots/available?serviceId=${selectedService.id}`
           )
           const data = await response.json()
           if (data.success) {
@@ -74,10 +111,19 @@ export default function ReservationPage() {
       }
       fetchTimeSlots()
     }
-  }, [selectedService])
+  }, [selectedService, step])
 
+  // 🎬 Fonction de sélection avec animation vidéo
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service)
+    setAnimationType(service.category as 'cils' | 'levres' | 'sourcils')
+    setShowAnimation(true)
+    // La transition vers step 2 se fera automatiquement quand la vidéo se termine (onEnded)
+  }
+
+  // 🎬 Quand la vidéo se termine
+  const handleVideoEnd = () => {
+    setShowAnimation(false)
     setStep(2)
   }
 
@@ -94,7 +140,7 @@ export default function ReservationPage() {
 
     try {
       const token = localStorage.getItem('clientToken')
-      const response = await fetch('http://localhost:5000/api/bookings', {
+      const response = await fetch(`${API_URL}/api/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -110,8 +156,7 @@ export default function ReservationPage() {
       const data = await response.json()
 
       if (response.ok) {
-        // Succès - rediriger vers une page de confirmation
-        router.push('/mes-reservations?success=true')
+        router.push('/mon-compte?tab=reservations&success=true')
       } else {
         setError(data.message || 'Erreur lors de la réservation')
       }
@@ -134,95 +179,159 @@ export default function ReservationPage() {
     }, {} as Record<string, TimeSlot[]>)
   }
 
+  const groupServicesByCategory = (services: Service[]) => {
+    return services.reduce((acc, service) => {
+      if (!acc[service.category]) {
+        acc[service.category] = []
+      }
+      acc[service.category].push(service)
+      return acc
+    }, {} as Record<string, Service[]>)
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white pt-32 pb-16 px-4">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">Réserver un rendez-vous</h1>
-          <p className="text-gray-600">BEL Institut de Beauté</p>
-          
-          {/* Steps indicator */}
-          <div className="flex items-center mt-6 space-x-4">
-            <div className={`flex items-center ${step >= 1 ? 'text-black' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-black text-white' : 'bg-gray-200'}`}>
+        <div className="text-center mb-12">
+          <h1 className="text-4xl md:text-5xl font-light text-gray-900 mb-4 tracking-wide">
+            Réserver un rendez-vous
+          </h1>
+          <p className="text-lg text-gray-600">
+            BEL Institut de Beauté - Prenez soin de vous
+          </p>
+        </div>
+
+        {/* Steps indicator */}
+        <div className="bg-white rounded-2xl shadow-sm p-6 mb-8">
+          <div className="flex items-center justify-between">
+            <div className={`flex items-center ${step >= 1 ? 'text-gray-900' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                step >= 1 ? 'bg-gray-900 text-white' : 'bg-gray-200'
+              }`}>
                 {step > 1 ? <Check className="h-5 w-5" /> : '1'}
               </div>
-              <span className="ml-2 text-sm font-medium">Service</span>
+              <span className="ml-3 text-sm font-light tracking-wide hidden md:block">Service</span>
             </div>
-            <div className="flex-1 h-px bg-gray-300"></div>
-            <div className={`flex items-center ${step >= 2 ? 'text-black' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-black text-white' : 'bg-gray-200'}`}>
+            
+            <div className={`flex-1 h-0.5 mx-4 ${step >= 2 ? 'bg-gray-900' : 'bg-gray-200'}`}></div>
+            
+            <div className={`flex items-center ${step >= 2 ? 'text-gray-900' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                step >= 2 ? 'bg-gray-900 text-white' : 'bg-gray-200'
+              }`}>
                 {step > 2 ? <Check className="h-5 w-5" /> : '2'}
               </div>
-              <span className="ml-2 text-sm font-medium">Créneau</span>
+              <span className="ml-3 text-sm font-light tracking-wide hidden md:block">Créneau</span>
             </div>
-            <div className="flex-1 h-px bg-gray-300"></div>
-            <div className={`flex items-center ${step >= 3 ? 'text-black' : 'text-gray-400'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-black text-white' : 'bg-gray-200'}`}>
+            
+            <div className={`flex-1 h-0.5 mx-4 ${step >= 3 ? 'bg-gray-900' : 'bg-gray-200'}`}></div>
+            
+            <div className={`flex items-center ${step >= 3 ? 'text-gray-900' : 'text-gray-400'}`}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                step >= 3 ? 'bg-gray-900 text-white' : 'bg-gray-200'
+              }`}>
                 3
               </div>
-              <span className="ml-2 text-sm font-medium">Confirmer</span>
+              <span className="ml-3 text-sm font-light tracking-wide hidden md:block">Confirmer</span>
             </div>
           </div>
         </div>
 
         {/* Step 1: Choose Service */}
         {step === 1 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-xl font-semibold mb-4">Choisissez votre prestation</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {services.map((service) => (
-                <button
-                  key={service.id}
-                  onClick={() => handleServiceSelect(service)}
-                  className="text-left p-4 border-2 border-gray-200 rounded-lg hover:border-black transition-colors"
-                >
-                  <h3 className="font-semibold text-gray-900 mb-1">{service.name}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{service.description}</p>
-                  <p className="text-lg font-bold text-black">{service.price}€</p>
-                </button>
-              ))}
-            </div>
+          <div className="space-y-8">
+            {Object.entries(groupServicesByCategory(services)).map(([category, categoryServices]) => {
+              const Icon = CATEGORY_ICONS[category] || Sparkles
+              return (
+                <div key={category}>
+                  <h2 className="text-2xl font-light text-gray-900 mb-6 flex items-center">
+                    <Icon className="w-6 h-6 mr-3" />
+                    {CATEGORY_LABELS[category] || category}
+                  </h2>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {categoryServices.map((service) => (
+                      <button
+                        key={service.id}
+                        onClick={() => handleServiceSelect(service)}
+                        className="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden group text-left"
+                      >
+                        <div className="p-6">
+                          <h3 className="text-xl font-light text-gray-900 mb-3 group-hover:text-gray-700 transition-colors">
+                            {service.name}
+                          </h3>
+                          <p className="text-sm text-gray-600 mb-4 leading-relaxed line-clamp-2">
+                            {service.description}
+                          </p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-sm text-gray-500">
+                              <Clock className="w-4 h-4" />
+                              <span>{service.duration} min</span>
+                            </div>
+                            <div className="text-2xl font-light text-gray-900">
+                              {service.price}€
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         )}
 
         {/* Step 2: Choose Time Slot */}
-        {step === 2 && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+        {step === 2 && selectedService && (
+          <div className="bg-white rounded-2xl shadow-sm p-8">
             <button
-              onClick={() => setStep(1)}
-              className="flex items-center text-gray-600 hover:text-black mb-4"
+              onClick={() => {
+                setStep(1)
+                setSelectedService(null)
+              }}
+              className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Retour
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              <span className="font-light">Changer de prestation</span>
             </button>
             
-            <h2 className="text-xl font-semibold mb-4">Choisissez un créneau</h2>
+            <div className="mb-8 p-6 bg-gray-50 rounded-xl">
+              <p className="text-sm text-gray-600 mb-2">Prestation sélectionnée</p>
+              <h3 className="text-2xl font-light text-gray-900">{selectedService.name}</h3>
+              <p className="text-lg font-light text-gray-900 mt-2">{selectedService.price}€</p>
+            </div>
+
+            <h2 className="text-2xl font-light text-gray-900 mb-6">Choisissez un créneau</h2>
             
             {timeSlots.length === 0 ? (
-              <p className="text-gray-600">Aucun créneau disponible pour le moment.</p>
+              <div className="text-center py-12">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-600">Aucun créneau disponible pour le moment.</p>
+                <p className="text-sm text-gray-500 mt-2">Veuillez réessayer ultérieurement.</p>
+              </div>
             ) : (
-              <div className="space-y-6">
+              <div className="space-y-8">
                 {Object.entries(groupSlotsByDate(timeSlots)).map(([date, slots]) => (
                   <div key={date}>
-                    <h3 className="font-medium text-gray-900 mb-3 flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
+                    <h3 className="font-light text-gray-900 mb-4 flex items-center text-lg">
+                      <Calendar className="h-5 w-5 mr-3 text-gray-600" />
                       {new Date(date).toLocaleDateString('fr-FR', { 
                         weekday: 'long', 
                         day: 'numeric', 
-                        month: 'long' 
+                        month: 'long',
+                        year: 'numeric'
                       })}
                     </h3>
-                    <div className="grid grid-cols-3 md:grid-cols-4 gap-2">
+                    <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
                       {slots.map((slot) => (
                         <button
                           key={slot.id}
                           onClick={() => handleTimeSlotSelect(slot)}
-                          className="p-3 border-2 border-gray-200 rounded-lg hover:border-black hover:bg-gray-50 transition-colors text-center"
+                          className="p-4 border-2 border-gray-200 rounded-xl hover:border-gray-900 hover:bg-gray-50 transition-all duration-200 text-center group"
                         >
-                          <Clock className="h-4 w-4 mx-auto mb-1 text-gray-600" />
-                          <span className="text-sm font-medium">{slot.startTime}</span>
+                          <Clock className="h-4 w-4 mx-auto mb-2 text-gray-400 group-hover:text-gray-900 transition-colors" />
+                          <span className="text-sm font-light">{slot.startTime}</span>
                         </button>
                       ))}
                     </div>
@@ -235,52 +344,68 @@ export default function ReservationPage() {
 
         {/* Step 3: Confirm */}
         {step === 3 && selectedService && selectedTimeSlot && (
-          <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="bg-white rounded-2xl shadow-sm p-8">
             <button
-              onClick={() => setStep(2)}
-              className="flex items-center text-gray-600 hover:text-black mb-4"
+              onClick={() => {
+                setStep(2)
+                setSelectedTimeSlot(null)
+              }}
+              className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
             >
-              <ArrowLeft className="h-4 w-4 mr-1" />
-              Retour
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              <span className="font-light">Changer de créneau</span>
             </button>
             
-            <h2 className="text-xl font-semibold mb-6">Confirmer votre réservation</h2>
+            <h2 className="text-2xl font-light text-gray-900 mb-8">Confirmer votre réservation</h2>
             
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded p-3 text-red-600 text-sm mb-4">
-                {error}
+              <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 text-red-700 text-sm mb-6 flex items-start">
+                <span className="font-medium">{error}</span>
               </div>
             )}
             
-            <div className="space-y-4 mb-6">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Prestation</p>
-                <p className="font-semibold text-gray-900">{selectedService.name}</p>
-                <p className="text-lg font-bold text-black mt-1">{selectedService.price}€</p>
+            <div className="space-y-4 mb-8">
+              <div className="p-6 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600 mb-2 font-light">Prestation</p>
+                <p className="text-xl font-light text-gray-900 mb-1">{selectedService.name}</p>
+                <div className="flex items-center justify-between mt-3">
+                  <div className="flex items-center gap-2 text-sm text-gray-600">
+                    <Clock className="w-4 h-4" />
+                    <span>{selectedService.duration} minutes</span>
+                  </div>
+                  <p className="text-2xl font-light text-gray-900">{selectedService.price}€</p>
+                </div>
               </div>
               
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600 mb-1">Date et heure</p>
-                <p className="font-semibold text-gray-900">
-                  {new Date(selectedTimeSlot.date).toLocaleDateString('fr-FR', { 
-                    weekday: 'long', 
-                    day: 'numeric', 
-                    month: 'long' 
-                  })}
-                </p>
-                <p className="font-semibold text-gray-900">{selectedTimeSlot.startTime}</p>
+              <div className="p-6 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600 mb-2 font-light">Date et heure</p>
+                <div className="flex items-center gap-3 mb-2">
+                  <Calendar className="w-5 h-5 text-gray-600" />
+                  <p className="text-lg font-light text-gray-900">
+                    {new Date(selectedTimeSlot.date).toLocaleDateString('fr-FR', { 
+                      weekday: 'long', 
+                      day: 'numeric', 
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Clock className="w-5 h-5 text-gray-600" />
+                  <p className="text-lg font-light text-gray-900">{selectedTimeSlot.startTime}</p>
+                </div>
               </div>
               
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-2">
-                  Remarques (optionnel)
+                <label className="block text-sm font-light text-gray-700 mb-3">
+                  Remarques ou demandes particulières (optionnel)
                 </label>
                 <textarea
                   value={clientNotes}
                   onChange={(e) => setClientNotes(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black"
-                  rows={3}
-                  placeholder="Des informations à nous communiquer ?"
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 transition-colors font-light"
+                  rows={4}
+                  placeholder="Des informations à nous communiquer ? (allergies, préférences...)"
                 />
               </div>
             </div>
@@ -288,17 +413,51 @@ export default function ReservationPage() {
             <button
               onClick={handleSubmitBooking}
               disabled={loading}
-              className="w-full bg-black text-white py-3 rounded-md font-medium hover:bg-gray-800 disabled:bg-gray-400 transition-colors flex items-center justify-center"
+              className="w-full bg-gray-900 text-white py-4 rounded-xl font-light text-lg hover:bg-gray-800 disabled:bg-gray-400 transition-all duration-300 flex items-center justify-center group"
             >
-              {loading ? 'Confirmation...' : (
+              {loading ? (
+                <div className="flex items-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  Confirmation en cours...
+                </div>
+              ) : (
                 <>
-                  Confirmer la réservation
-                  <ArrowRight className="ml-2 h-5 w-5" />
+                  <span className="tracking-wide">Confirmer la réservation</span>
+                  <ArrowRight className="ml-3 h-5 w-5 group-hover:translate-x-1 transition-transform" />
                 </>
               )}
             </button>
+
+            <p className="text-xs text-gray-500 text-center mt-4 font-light">
+              Vous recevrez un email de confirmation après validation de votre réservation
+            </p>
           </div>
         )}
+
+        {/* 🎬 ANIMATION TRANSITION VIDÉO */}
+        {/* 🎬 ANIMATION TRANSITION VIDÉO PLEIN ÉCRAN */}
+{showAnimation && animationType && (
+  <div className="fixed inset-0 z-50 bg-black">
+    <video
+      key={animationType}
+      autoPlay
+      muted
+      playsInline
+      onEnded={handleVideoEnd}
+      className="w-full h-full object-cover"
+    >
+      <source src={`/videos/${animationType}-animation.mp4`} type="video/mp4" />
+      <source src={`/videos/${animationType}-animation.webm`} type="video/webm" />
+    </video>
+    
+    {/* Texte par-dessus la vidéo */}
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+      <p className="text-4xl md:text-5xl font-light text-white animate-pulse drop-shadow-2xl">
+        {CATEGORY_MESSAGES[animationType]}
+      </p>
+    </div>
+  </div>
+)}
       </div>
     </div>
   )

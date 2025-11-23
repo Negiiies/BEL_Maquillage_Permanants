@@ -1,6 +1,6 @@
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
-const { User, Service, Formation, Contact } = require('../models');
+const { User, Service, Formation, Contact, BlacklistedToken } = require('../models');
 
 // Connexion admin
 const loginAdmin = async (req, res) => {
@@ -232,7 +232,45 @@ const verifyAdminToken = async (req, res) => {
   }
 };
 
-// Middleware pour protéger les routes admin
+// ✅ NOUVELLE FONCTION : Déconnexion admin avec révocation du token
+const logoutAdmin = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token manquant'
+      });
+    }
+    
+    // Décoder le token pour obtenir l'expiration
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'beauty_institute_secret_key_2025');
+    
+    // Ajouter à la blacklist
+    await BlacklistedToken.create({
+      token: token,
+      userId: decoded.userId,
+      userType: 'admin',
+      expiresAt: new Date(decoded.exp * 1000), // exp est en secondes, on convertit en ms
+      reason: 'logout'
+    });
+    
+    res.json({
+      success: true,
+      message: 'Déconnexion réussie'
+    });
+  } catch (error) {
+    console.error('Erreur logout admin:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la déconnexion',
+      error: error.message
+    });
+  }
+};
+
+// ✅ MIDDLEWARE MODIFIÉ : Vérifier la blacklist
 const authMiddleware = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -241,6 +279,18 @@ const authMiddleware = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'Accès non autorisé - Token manquant'
+      });
+    }
+    
+    // ✅ VÉRIFIER SI LE TOKEN EST BLACKLISTÉ
+    const isBlacklisted = await BlacklistedToken.findOne({
+      where: { token: token }
+    });
+    
+    if (isBlacklisted) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token révoqué - Veuillez vous reconnecter'
       });
     }
     
@@ -272,5 +322,6 @@ module.exports = {
   createAdmin,
   getDashboardStats,
   verifyAdminToken,
-  authMiddleware
+  authMiddleware,
+  logoutAdmin  // ✅ AJOUTÉ
 };

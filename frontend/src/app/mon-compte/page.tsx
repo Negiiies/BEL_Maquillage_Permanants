@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { User, Calendar, LogOut, Mail, Phone, Edit } from 'lucide-react'
-
+import { API_URL } from '@/lib/config'
 export default function MonComptePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -42,10 +42,25 @@ export default function MonComptePage() {
     fetchProfile()
   }, [router])
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+  try {
+    const token = localStorage.getItem('clientToken')
+    
+    await fetch(`${API_URL}/api/auth/logout`, {  // ✅ Changé ici
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
     localStorage.removeItem('clientToken')
-    window.location.href = '/' // Force le rechargement pour mettre à jour le Header
+    window.location.href = '/'
+  } catch (error) {
+    console.error('Erreur logout:', error)
+    localStorage.removeItem('clientToken')
+    window.location.href = '/'
   }
+}
 
   if (loading) {
     return (
@@ -56,7 +71,8 @@ export default function MonComptePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-12 px-4">
+    // Ajout de pt-24 (padding-top: 6rem = 96px) pour compenser la navbar (h-20 = 80px + marge)
+    <div className="min-h-screen bg-gray-50 pt-24 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">

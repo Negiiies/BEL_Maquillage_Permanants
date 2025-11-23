@@ -3,11 +3,23 @@
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
 import { Menu, X, User } from 'lucide-react'
+import { usePathname } from 'next/navigation'
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const pathname = usePathname()
+
+  // Déterminer si on est sur une page avec fond clair
+  const isLightBackground = [
+    '/mon-compte',
+    '/reserver',
+    '/booking',
+    '/mes-reservations',
+    '/contact',
+    '/prestations'
+  ].some(path => pathname?.startsWith(path))
 
   // Détection du scroll
   useEffect(() => {
@@ -39,13 +51,50 @@ const Header = () => {
     { name: 'Contact', href: '/contact' },
   ]
 
+  // Styles adaptatifs selon le fond de la page
+  const getHeaderStyle = () => {
+    if (isLightBackground) {
+      // Pour les pages avec fond clair
+      return isScrolled 
+        ? 'bg-white/95 backdrop-blur-md shadow-lg' 
+        : 'bg-white/80 backdrop-blur-sm'
+    } else {
+      // Pour les pages avec fond sombre (accueil, etc.)
+      return isScrolled 
+        ? 'bg-black/95 backdrop-blur-md shadow-lg' 
+        : 'bg-transparent'
+    }
+  }
+
+  const getTextColor = () => {
+    return isLightBackground ? 'text-gray-900' : 'text-white'
+  }
+
+  const getTextColorHover = () => {
+    return isLightBackground 
+      ? 'text-gray-600 hover:text-gray-900' 
+      : 'text-white/80 hover:text-white'
+  }
+
+  const getButtonStyle = () => {
+    return isLightBackground
+      ? 'bg-gray-900 text-white hover:bg-gray-800'
+      : 'bg-white/10 backdrop-blur-sm border border-white/20 text-white hover:bg-white/20 hover:border-white/40'
+  }
+
+  const getMobileMenuBg = () => {
+    return isLightBackground
+      ? 'bg-white/95 backdrop-blur-md border-t border-gray-200'
+      : 'bg-black/95 backdrop-blur-md border-t border-white/10'
+  }
+
+  const getUnderlineColor = () => {
+    return isLightBackground ? 'bg-gray-900' : 'bg-white'
+  }
+
   return (
     <header 
-      className={`fixed top-0 w-full z-50 transition-all duration-500 ${
-        isScrolled 
-          ? 'bg-black/95 backdrop-blur-md shadow-lg' 
-          : 'bg-transparent'
-      }`}
+      className={`fixed top-0 w-full z-50 transition-all duration-500 ${getHeaderStyle()}`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
@@ -56,7 +105,9 @@ const Header = () => {
                 <img 
                   src="/images/Logo .svg" 
                   alt="BEL Institut" 
-                  className="w-full h-full object-contain filter drop-shadow-lg"
+                  className={`w-full h-full object-contain filter drop-shadow-lg ${
+                    isLightBackground ? 'brightness-0' : ''
+                  }`}
                 />
               </div>
             </Link>
@@ -68,10 +119,10 @@ const Header = () => {
               <Link
                 key={item.name}
                 href={item.href}
-                className="text-white/80 hover:text-white text-sm font-light tracking-[0.1em] uppercase transition-all duration-300 relative group"
+                className={`${getTextColorHover()} text-sm font-light tracking-[0.1em] uppercase transition-all duration-300 relative group`}
               >
                 {item.name}
-                <span className="absolute -bottom-1 left-0 w-0 h-px bg-white transition-all duration-300 group-hover:w-full"></span>
+                <span className={`absolute -bottom-1 left-0 w-0 h-px ${getUnderlineColor()} transition-all duration-300 group-hover:w-full`}></span>
               </Link>
             ))}
           </nav>
@@ -82,19 +133,19 @@ const Header = () => {
               <>
                 <Link
                   href="/auth/login"
-                  className="text-white/60 hover:text-white text-sm font-light tracking-[0.05em] transition-colors duration-300"
+                  className={`${getTextColorHover()} text-sm font-light tracking-[0.05em] transition-colors duration-300`}
                 >
                   Connexion
                 </Link>
                 <Link
                   href="/auth/register"
-                  className="text-white/60 hover:text-white text-sm font-light tracking-[0.05em] transition-colors duration-300"
+                  className={`${getTextColorHover()} text-sm font-light tracking-[0.05em] transition-colors duration-300`}
                 >
                   Inscription
                 </Link>
                 <Link
                   href="/auth/login"
-                  className="bg-white/10 backdrop-blur-sm border border-white/20 text-white px-6 py-2.5 text-sm font-light tracking-[0.05em] transition-all duration-300 hover:bg-white/20 hover:border-white/40"
+                  className={`${getButtonStyle()} px-6 py-2.5 text-sm font-light tracking-[0.05em] transition-all duration-300`}
                 >
                   Prendre RDV
                 </Link>
@@ -103,14 +154,14 @@ const Header = () => {
               <>
                 <Link
                   href="/mon-compte"
-                  className="text-white/60 hover:text-white text-sm font-light tracking-[0.05em] transition-colors duration-300 flex items-center space-x-2"
+                  className={`${getTextColorHover()} text-sm font-light tracking-[0.05em] transition-colors duration-300 flex items-center space-x-2`}
                 >
                   <User className="h-4 w-4" />
                   <span>Mon compte</span>
                 </Link>
                 <Link
                   href="/reserver"
-                  className="bg-white/10 backdrop-blur-sm border border-white/20 text-white px-6 py-2.5 text-sm font-light tracking-[0.05em] transition-all duration-300 hover:bg-white/20"
+                  className={`${getButtonStyle()} px-6 py-2.5 text-sm font-light tracking-[0.05em] transition-all duration-300`}
                 >
                   Prendre RDV
                 </Link>
@@ -122,7 +173,7 @@ const Header = () => {
           <div className="lg:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="text-white/80 hover:text-white p-2 transition-colors duration-300"
+              className={`${getTextColorHover()} p-2 transition-colors duration-300`}
             >
               {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
@@ -132,39 +183,39 @@ const Header = () => {
 
       {/* Mobile Navigation */}
       {isMenuOpen && (
-        <div className="lg:hidden bg-black/95 backdrop-blur-md border-t border-white/10">
+        <div className={`lg:hidden ${getMobileMenuBg()}`}>
           <div className="px-4 pt-4 pb-6 space-y-4">
             {navigation.map((item) => (
               <Link
                 key={item.name}
                 href={item.href}
-                className="block text-white/80 hover:text-white text-base font-light tracking-[0.05em] transition-colors duration-300 py-2"
+                className={`block ${getTextColorHover()} text-base font-light tracking-[0.05em] transition-colors duration-300 py-2`}
                 onClick={() => setIsMenuOpen(false)}
               >
                 {item.name}
               </Link>
             ))}
             
-            <div className="border-t border-white/10 pt-4 mt-6 space-y-4">
+            <div className={`border-t ${isLightBackground ? 'border-gray-200' : 'border-white/10'} pt-4 mt-6 space-y-4`}>
               {!isAuthenticated ? (
                 <>
                   <Link
                     href="/auth/login"
-                    className="block text-white/60 hover:text-white text-base font-light tracking-[0.05em] transition-colors duration-300 py-2"
+                    className={`block ${getTextColorHover()} text-base font-light tracking-[0.05em] transition-colors duration-300 py-2`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Connexion
                   </Link>
                   <Link
                     href="/auth/register"
-                    className="block text-white/60 hover:text-white text-base font-light tracking-[0.05em] transition-colors duration-300 py-2"
+                    className={`block ${getTextColorHover()} text-base font-light tracking-[0.05em] transition-colors duration-300 py-2`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Inscription
                   </Link>
                   <Link
                     href="/auth/login"
-                    className="block bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-3 text-center text-base font-light tracking-[0.05em] transition-all duration-300 mt-4"
+                    className={`block ${getButtonStyle()} px-4 py-3 text-center text-base font-light tracking-[0.05em] transition-all duration-300 mt-4`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Prendre Rendez-vous
@@ -174,7 +225,7 @@ const Header = () => {
                 <>
                   <Link
                     href="/mon-compte"
-                    className="flex items-center text-white/60 hover:text-white text-base font-light tracking-[0.05em] transition-colors duration-300 py-2"
+                    className={`flex items-center ${getTextColorHover()} text-base font-light tracking-[0.05em] transition-colors duration-300 py-2`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     <User className="h-5 w-5 mr-2" />
@@ -182,7 +233,7 @@ const Header = () => {
                   </Link>
                   <Link
                     href="/reserver"
-                    className="block bg-white/10 backdrop-blur-sm border border-white/20 text-white px-4 py-3 text-center text-base font-light tracking-[0.05em] transition-all duration-300"
+                    className={`block ${getButtonStyle()} px-4 py-3 text-center text-base font-light tracking-[0.05em] transition-all duration-300`}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Prendre RDV

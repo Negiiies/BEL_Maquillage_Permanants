@@ -5,7 +5,7 @@ const getAllFormations = async (req, res) => {
   try {
     const formations = await Formation.findAll({
       where: { isActive: true },
-      order: [['createdAt', 'DESC']]
+      order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']]
     });
     
     res.json({
@@ -24,37 +24,36 @@ const getAllFormations = async (req, res) => {
   }
 };
 
-// Récupérer les formations par niveau
-const getFormationsByLevel = async (req, res) => {
+// ✅ NOUVELLE FONCTION : Récupérer les formations par catégorie
+const getFormationsByCategory = async (req, res) => {
   try {
-    const { level } = req.params;
+    const { category } = req.params;
     
-    // Valider le niveau
-    const validLevels = ['debutant', 'intermediaire', 'avance'];
-    if (!validLevels.includes(level)) {
+    const validCategories = ['pigmentation', 'regard_sourcils'];
+    if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,
-        message: 'Niveau invalide',
-        validLevels: validLevels
+        message: 'Catégorie invalide',
+        validCategories: validCategories
       });
     }
     
     const formations = await Formation.findAll({
       where: { 
-        level: level,
+        category: category,
         isActive: true 
       },
-      order: [['createdAt', 'DESC']]
+      order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']]
     });
     
     res.json({
       success: true,
-      message: `Formations ${level} récupérées avec succès`,
+      message: `Formations ${category} récupérées avec succès`,
       data: formations,
       count: formations.length
     });
   } catch (error) {
-    console.error('Erreur getFormationsByLevel:', error);
+    console.error('Erreur getFormationsByCategory:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des formations',
@@ -68,7 +67,6 @@ const getFormationById = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // Valider l'ID
     if (!id || isNaN(id)) {
       return res.status(400).json({
         success: false,
@@ -103,23 +101,21 @@ const getFormationById = async (req, res) => {
 // Créer une nouvelle formation (admin)
 const createFormation = async (req, res) => {
   try {
-    const { title, description, price, duration, level } = req.body;
+    const { title, description, price, duration, category, level, sortOrder } = req.body;
     
-    // Validation des champs requis
-    if (!title || !description || !duration || !level) {
+    if (!title || !description || !category) {
       return res.status(400).json({
         success: false,
-        message: 'Titre, description, durée et niveau sont requis'
+        message: 'Titre, description et catégorie sont requis'
       });
     }
     
-    // Valider le niveau
-    const validLevels = ['debutant', 'intermediaire', 'avance'];
-    if (!validLevels.includes(level)) {
+    const validCategories = ['pigmentation', 'regard_sourcils'];
+    if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,
-        message: 'Niveau invalide',
-        validLevels: validLevels
+        message: 'Catégorie invalide',
+        validCategories: validCategories
       });
     }
     
@@ -128,7 +124,9 @@ const createFormation = async (req, res) => {
       description,
       price,
       duration,
+      category,
       level,
+      sortOrder: sortOrder || 0,
       isActive: true
     });
     
@@ -151,7 +149,7 @@ const createFormation = async (req, res) => {
 const updateFormation = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, price, duration, level, isActive } = req.body;
+    const { title, description, price, duration, category, level, sortOrder, isActive } = req.body;
     
     const formation = await Formation.findByPk(id);
     
@@ -162,14 +160,13 @@ const updateFormation = async (req, res) => {
       });
     }
     
-    // Valider le niveau si fourni
-    if (level) {
-      const validLevels = ['debutant', 'intermediaire', 'avance'];
-      if (!validLevels.includes(level)) {
+    if (category) {
+      const validCategories = ['pigmentation', 'regard_sourcils'];
+      if (!validCategories.includes(category)) {
         return res.status(400).json({
           success: false,
-          message: 'Niveau invalide',
-          validLevels: validLevels
+          message: 'Catégorie invalide',
+          validCategories: validCategories
         });
       }
     }
@@ -177,9 +174,11 @@ const updateFormation = async (req, res) => {
     await formation.update({
       title: title || formation.title,
       description: description || formation.description,
-      price: price || formation.price,
+      price: price !== undefined ? price : formation.price,
       duration: duration || formation.duration,
+      category: category || formation.category,
       level: level || formation.level,
+      sortOrder: sortOrder !== undefined ? sortOrder : formation.sortOrder,
       isActive: isActive !== undefined ? isActive : formation.isActive
     });
     
@@ -212,7 +211,6 @@ const deleteFormation = async (req, res) => {
       });
     }
     
-    // Soft delete - on désactive au lieu de supprimer
     await formation.update({ isActive: false });
     
     res.json({
@@ -231,7 +229,7 @@ const deleteFormation = async (req, res) => {
 
 module.exports = {
   getAllFormations,
-  getFormationsByLevel,
+  getFormationsByCategory,  // ✅ NOUVELLE FONCTION
   getFormationById,
   createFormation,
   updateFormation,

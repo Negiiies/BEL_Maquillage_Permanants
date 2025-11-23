@@ -1,6 +1,5 @@
-// frontend/src/app/admin/services/page.tsx
 'use client'
-
+import { API_URL } from '@/lib/config'
 import { useState, useEffect } from 'react'
 import { 
   Plus, 
@@ -21,6 +20,7 @@ interface Service {
   price: number
   duration: number
   category: string
+  imageUrl?: string
   isActive: boolean
   sortOrder: number
   totalBookings?: string
@@ -35,13 +35,13 @@ interface ServiceFormData {
   duration: string
   category: string
   sortOrder: string
+  imageUrl: string
 }
 
 const categories = [
-  { value: 'maquillage_permanent', label: 'Maquillage Permanent' },
-  { value: 'extensions_cils', label: 'Extensions de Cils' },
-  { value: 'soins_regard', label: 'Soins du Regard' },
-  { value: 'autres', label: 'Autres' }
+  { value: 'sourcils', label: '✨ Sourcils' },
+  { value: 'levres', label: '💋 Lèvres' },
+  { value: 'cils', label: '👁️ Cils' }
 ]
 
 export default function AdminServices() {
@@ -56,10 +56,13 @@ export default function AdminServices() {
     description: '',
     price: '',
     duration: '',
-    category: 'maquillage_permanent',
-    sortOrder: '0'
+    category: 'sourcils',
+    sortOrder: '0',
+    imageUrl: ''
   })
   const [formLoading, setFormLoading] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const [uploadError, setUploadError] = useState('')
 
   // Charger les services
   const fetchServices = async () => {
@@ -99,7 +102,8 @@ export default function AdminServices() {
         price: service.price.toString(),
         duration: service.duration.toString(),
         category: service.category,
-        sortOrder: service.sortOrder.toString()
+        sortOrder: service.sortOrder.toString(),
+        imageUrl: service.imageUrl || ''
       })
     } else {
       setEditingService(null)
@@ -108,8 +112,9 @@ export default function AdminServices() {
         description: '',
         price: '',
         duration: '',
-        category: 'maquillage_permanent',
-        sortOrder: '0'
+        category: 'sourcils',
+        sortOrder: '0',
+        imageUrl: ''
       })
     }
     setShowModal(true)
@@ -124,9 +129,63 @@ export default function AdminServices() {
       description: '',
       price: '',
       duration: '',
-      category: 'maquillage_permanent',
-      sortOrder: '0'
+      category: 'sourcils',
+      sortOrder: '0',
+      imageUrl: ''
     })
+    setUploading(false)
+    setUploadError('')
+  }
+
+  // Fonction pour uploader une image
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Vérifier la taille (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('L\'image est trop grande (max 5MB)')
+      return
+    }
+
+    // Vérifier le type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Format non accepté. Utilisez JPG, PNG, GIF ou WEBP')
+      return
+    }
+
+    setUploading(true)
+    setUploadError('')
+
+    try {
+      const token = localStorage.getItem('adminToken')
+      const formDataUpload = new FormData()
+      formDataUpload.append('image', file)
+
+      const response = await fetch('http://localhost:5000/api/admin/upload/service-image', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formDataUpload
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        // Stocker l'URL de l'image dans le formulaire
+        setFormData({ ...formData, imageUrl: data.data.imageUrl })
+        setUploadError('')
+      } else {
+        setUploadError(data.message || 'Erreur lors de l\'upload')
+      }
+    } catch (error) {
+      console.error('Erreur upload:', error)
+      setUploadError('Erreur de connexion au serveur')
+    } finally {
+      setUploading(false)
+    }
   }
 
   // Soumettre le formulaire
@@ -152,7 +211,8 @@ export default function AdminServices() {
           price: parseFloat(formData.price),
           duration: parseInt(formData.duration),
           category: formData.category,
-          sortOrder: parseInt(formData.sortOrder)
+          sortOrder: parseInt(formData.sortOrder),
+          imageUrl: formData.imageUrl || null
         })
       })
 
@@ -462,6 +522,82 @@ export default function AdminServices() {
                     <option key={cat.value} value={cat.value}>{cat.label}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* ✅ NOUVEAU SYSTÈME D'UPLOAD */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Image de la prestation (optionnelle)
+                </label>
+                
+                {/* Input file caché */}
+                <input
+                  type="file"
+                  id="imageUpload"
+                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                
+                {/* Bouton pour déclencher l'upload */}
+                <button
+                  type="button"
+                  onClick={() => document.getElementById('imageUpload')?.click()}
+                  disabled={uploading}
+                  className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-blue-600"
+                >
+                  {uploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span>Upload en cours...</span>
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      <span>Choisir une image</span>
+                    </>
+                  )}
+                </button>
+                
+                <p className="text-xs text-gray-500 mt-1">
+                  Formats acceptés : JPG, PNG, GIF, WEBP (max 5MB)
+                </p>
+                
+                {/* Aperçu de l'image */}
+                {formData.imageUrl && (
+                  <div className="mt-3 relative">
+                    <p className="text-xs text-gray-600 mb-2">Aperçu :</p>
+                    <div className="relative group">
+                      <img 
+                        src={`${API_URL}${formData.imageUrl}`}
+                        alt="Aperçu" 
+                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
+                        onError={(e) => {
+                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" fill="%23999"%3EImage invalide%3C/text%3E%3C/svg%3E'
+                        }}
+                      />
+                      
+                      {/* Bouton supprimer l'image */}
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, imageUrl: '' })}
+                        className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
+                        title="Supprimer l'image"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Message d'erreur upload */}
+                {uploadError && (
+                  <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded">
+                    {uploadError}
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">

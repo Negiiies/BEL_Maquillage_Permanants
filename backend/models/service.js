@@ -1,17 +1,14 @@
-// backend/models/service.js - VERSION AMÉLIORÉE
 'use strict';
 const { Model } = require('sequelize');
 
 module.exports = (sequelize, DataTypes) => {
   class Service extends Model {
     static associate(models) {
-      // Un service peut avoir plusieurs réservations
       Service.hasMany(models.Booking, {
         foreignKey: 'serviceId',
         as: 'bookings'
       });
       
-      // Un service peut avoir des créneaux spécifiques
       Service.hasMany(models.TimeSlot, {
         foreignKey: 'serviceId',
         as: 'timeSlots'
@@ -44,12 +41,12 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: 60,
       comment: 'Durée en minutes',
       validate: {
-        min: 15,    // Minimum 15 minutes
-        max: 480    // Maximum 8 heures
+        min: 15,
+        max: 480
       }
     },
     category: {
-      type: DataTypes.ENUM('maquillage_permanent', 'extensions_cils', 'soins_regard', 'autres'),
+      type: DataTypes.ENUM('sourcils', 'levres', 'cils'),  // ✅ NOUVELLE VERSION
       allowNull: false
     },
     isActive: {
@@ -60,7 +57,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       defaultValue: 0,
       comment: 'Ordre d\'affichage'
-    }
+    },
+    imageUrl: {
+  type: DataTypes.STRING,
+  allowNull: true,
+  comment: 'URL de l\'image de la prestation'
+},
   }, {
     sequelize,
     modelName: 'Service',

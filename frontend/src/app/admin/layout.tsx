@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { API_URL } from '@/lib/config' 
 import { 
   LayoutDashboard, 
   Users, 
@@ -66,11 +67,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     checkAuth()
   }, [router, pathname])
 
-  const handleLogout = () => {
+ const handleLogout = async () => {
+  try {
+    const token = localStorage.getItem('adminToken')
+    
+    await fetch(`${API_URL}/api/admin/logout`, {  // ✅ Utilise API_URL
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
+    
+    localStorage.removeItem('adminToken')
+    router.push('/admin/login')
+  } catch (error) {
+    console.error('Erreur logout:', error)
     localStorage.removeItem('adminToken')
     router.push('/admin/login')
   }
-
+}
   const navigation = [
     { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
     { name: 'Services', href: '/admin/services', icon: Sparkles },

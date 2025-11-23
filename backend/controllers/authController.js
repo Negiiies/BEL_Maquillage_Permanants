@@ -1,8 +1,6 @@
-// backend/controllers/authController.js
 const argon2 = require('argon2');
 const jwt = require('jsonwebtoken');
-const crypto = require('crypto');
-const { Client } = require('../models');
+const { Client, BlacklistedToken } = require('../models');
 
 // Inscription client
 const registerClient = async (req, res) => {
@@ -33,20 +31,19 @@ const registerClient = async (req, res) => {
     if (existingClient) {
       return res.status(400).json({
         success: false,
-        message: 'Un compte existe déjà avec cette adresse email'
+        message: 'Un compte existe déjà avec cet email'
       });
     }
     
     // Hasher le mot de passe
-    const hashedPassword = await argon2.hash(password, {
-      type: argon2.argon2id,
-      memoryCost: 2 ** 16,
-      timeCost: 3,
-      parallelism: 1,
-    });
+    const hashedPassword = await argon2.hash(password);
     
     // Générer un token de vérification email
-    const emailVerificationToken = crypto.randomBytes(32).toString('hex');
+    const emailVerificationToken = jwt.sign(
+      { email: email.toLowerCase().trim() },
+      process.env.JWT_SECRET || 'beauty_institute_secret_key_2025',
+      { expiresIn: '24h' }
+    );
     
     // Créer le client
     const client = await Client.create({
@@ -226,7 +223,45 @@ const verifyClientToken = async (req, res) => {
   }
 };
 
-// Middleware pour protéger les routes client
+// ✅ NOUVELLE FONCTION : Déconnexion client avec révocation du token
+const logoutClient = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.split(' ')[1];
+    
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        message: 'Token manquant'
+      });
+    }
+    
+    // Décoder le token pour obtenir l'expiration
+    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'beauty_institute_secret_key_2025');
+    
+    // Ajouter à la blacklist
+    await BlacklistedToken.create({
+      token: token,
+      userId: decoded.clientId,
+      userType: 'client',
+      expiresAt: new Date(decoded.exp * 1000),
+      reason: 'logout'
+    });
+    
+    res.json({
+      success: true,
+      message: 'Déconnexion réussie'
+    });
+  } catch (error) {
+    console.error('Erreur logout client:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la déconnexion',
+      error: error.message
+    });
+  }
+};
+
+// ✅ MIDDLEWARE MODIFIÉ : Vérifier la blacklist
 const clientAuthMiddleware = async (req, res, next) => {
   try {
     const token = req.headers.authorization?.split(' ')[1];
@@ -235,6 +270,18 @@ const clientAuthMiddleware = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: 'Accès non autorisé - Connexion requise'
+      });
+    }
+    
+    // ✅ VÉRIFIER SI LE TOKEN EST BLACKLISTÉ
+    const isBlacklisted = await BlacklistedToken.findOne({
+      where: { token: token }
+    });
+    
+    if (isBlacklisted) {
+      return res.status(401).json({
+        success: false,
+        message: 'Token révoqué - Veuillez vous reconnecter'
       });
     }
     
@@ -271,7 +318,7 @@ const clientAuthMiddleware = async (req, res, next) => {
 // Récupérer le profil client
 const getClientProfile = async (req, res) => {
   try {
-    const client = req.client; // Vient du middleware
+    const client = req.client; // Injecté par le middleware
     
     res.json({
       success: true,
@@ -284,8 +331,7 @@ const getClientProfile = async (req, res) => {
         phone: client.phone,
         dateOfBirth: client.dateOfBirth,
         emailVerified: client.emailVerified,
-        createdAt: client.createdAt,
-        lastLoginAt: client.lastLoginAt
+        createdAt: client.createdAt
       }
     });
   } catch (error) {
@@ -304,26 +350,11 @@ const updateClientProfile = async (req, res) => {
     const client = req.client;
     const { firstName, lastName, phone, dateOfBirth } = req.body;
     
-    // Validation des champs si fournis
-    if (firstName && firstName.trim().length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Le prénom doit contenir au moins 2 caractères'
-      });
-    }
-    
-    if (lastName && lastName.trim().length < 2) {
-      return res.status(400).json({
-        success: false,
-        message: 'Le nom doit contenir au moins 2 caractères'
-      });
-    }
-    
     await client.update({
-      firstName: firstName ? firstName.trim() : client.firstName,
-      lastName: lastName ? lastName.trim() : client.lastName,
-      phone: phone !== undefined ? (phone ? phone.trim() : null) : client.phone,
-      dateOfBirth: dateOfBirth !== undefined ? dateOfBirth : client.dateOfBirth
+      firstName: firstName || client.firstName,
+      lastName: lastName || client.lastName,
+      phone: phone || client.phone,
+      dateOfBirth: dateOfBirth || client.dateOfBirth
     });
     
     res.json({
@@ -335,8 +366,7 @@ const updateClientProfile = async (req, res) => {
         firstName: client.firstName,
         lastName: client.lastName,
         phone: client.phone,
-        dateOfBirth: client.dateOfBirth,
-        emailVerified: client.emailVerified
+        dateOfBirth: client.dateOfBirth
       }
     });
   } catch (error) {
@@ -355,5 +385,6 @@ module.exports = {
   verifyClientToken,
   clientAuthMiddleware,
   getClientProfile,
-  updateClientProfile
+  updateClientProfile,
+  logoutClient  // ✅ AJOUTÉ
 };

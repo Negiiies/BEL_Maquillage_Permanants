@@ -1,6 +1,7 @@
 // 5. Hooks personnalisés - frontend/src/hooks/useAuth.ts
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { API_URL } from '@/lib/config'
 
 interface User {
   id: number
@@ -22,7 +23,7 @@ export const useAuth = () => {
 
     const verifyToken = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/admin/verify', {
+        const response = await fetch(`${API_URL}/api/admin/verify`, {  // ✅ Changé ici
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
@@ -43,10 +44,28 @@ export const useAuth = () => {
     verifyToken()
   }, [])
 
-  const logout = () => {
-    localStorage.removeItem('adminToken')
-    setUser(null)
-    router.push('/admin/login')
+  const logout = async () => {  // ✅ Ajouté async
+    try {
+      const token = localStorage.getItem('adminToken')
+      
+      // ✅ Appeler l'API de logout
+      await fetch(`${API_URL}/api/admin/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      localStorage.removeItem('adminToken')
+      setUser(null)
+      router.push('/admin/login')
+    } catch (error) {
+      console.error('Erreur logout:', error)
+      // Même en cas d'erreur, on déconnecte quand même
+      localStorage.removeItem('adminToken')
+      setUser(null)
+      router.push('/admin/login')
+    }
   }
 
   return { user, loading, logout }

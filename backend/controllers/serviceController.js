@@ -11,7 +11,7 @@ const getAllServices = async (req, res) => {
   try {
     const services = await Service.findAll({
       where: { isActive: true },
-      attributes: ['id', 'name', 'description', 'price', 'duration', 'category'],
+      attributes: ['id', 'name', 'description', 'price', 'duration', 'category', 'imageUrl'],
       order: [['sortOrder', 'ASC'], ['name', 'ASC']]
     });
     
@@ -36,7 +36,7 @@ const getServicesByCategory = async (req, res) => {
   try {
     const { category } = req.params;
     
-    const validCategories = ['maquillage_permanent', 'extensions_cils', 'soins_regard', 'autres'];
+    const validCategories = ['sourcils', 'levres', 'cils'];
     if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,
@@ -50,7 +50,7 @@ const getServicesByCategory = async (req, res) => {
         category: category,
         isActive: true 
       },
-      attributes: ['id', 'name', 'description', 'price', 'duration', 'category'],
+      attributes: ['id', 'name', 'description', 'price', 'duration', 'category', 'imageUrl'],
       order: [['sortOrder', 'ASC'], ['name', 'ASC']]
     });
     
@@ -87,7 +87,7 @@ const getServiceById = async (req, res) => {
         id: id,
         isActive: true 
       },
-      attributes: ['id', 'name', 'description', 'price', 'duration', 'category']
+      attributes: ['id', 'name', 'description', 'price', 'duration', 'category', 'imageUrl']
     });
     
     if (!service) {
@@ -141,6 +141,7 @@ const getAllServicesAdmin = async (req, res) => {
       ],
       attributes: [
         'id', 'name', 'description', 'price', 'duration', 'category', 
+        'imageUrl',
         'isActive', 'sortOrder', 'createdAt', 'updatedAt',
         [sequelize.fn('COUNT', sequelize.col('bookings.id')), 'totalBookings']
       ],
@@ -175,7 +176,7 @@ const getAllServicesAdmin = async (req, res) => {
 // Créer un nouveau service (ADMIN)
 const createService = async (req, res) => {
   try {
-    const { name, description, price, duration, category, sortOrder = 0 } = req.body;
+    const { name, description, price, duration, category, imageUrl, sortOrder = 0 } = req.body;
     
     // Validation des champs requis
     if (!name || !price || !duration || !category) {
@@ -202,7 +203,7 @@ const createService = async (req, res) => {
     }
     
     // Validation de la catégorie
-    const validCategories = ['maquillage_permanent', 'extensions_cils', 'soins_regard', 'autres'];
+    const validCategories = ['sourcils', 'levres', 'cils'];
     if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,
@@ -232,6 +233,7 @@ const createService = async (req, res) => {
       price: parseFloat(price),
       duration: parseInt(duration),
       category,
+      imageUrl: imageUrl || null,
       sortOrder: parseInt(sortOrder),
       isActive: true
     });
@@ -255,7 +257,7 @@ const createService = async (req, res) => {
 const updateService = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, description, price, duration, category, isActive, sortOrder } = req.body;
+    const { name, description, price, duration, category, imageUrl, isActive, sortOrder } = req.body;
     
     const service = await Service.findByPk(id);
     
@@ -282,7 +284,7 @@ const updateService = async (req, res) => {
     }
     
     if (category !== undefined) {
-      const validCategories = ['maquillage_permanent', 'extensions_cils', 'soins_regard', 'autres'];
+      const validCategories = ['sourcils', 'levres', 'cils'];
       if (!validCategories.includes(category)) {
         return res.status(400).json({
           success: false,
@@ -317,6 +319,7 @@ const updateService = async (req, res) => {
       price: price !== undefined ? parseFloat(price) : service.price,
       duration: duration !== undefined ? parseInt(duration) : service.duration,
       category: category || service.category,
+      imageUrl: imageUrl !== undefined ? imageUrl : service.imageUrl,
       isActive: isActive !== undefined ? isActive : service.isActive,
       sortOrder: sortOrder !== undefined ? parseInt(sortOrder) : service.sortOrder
     });

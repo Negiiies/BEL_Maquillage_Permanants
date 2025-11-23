@@ -11,6 +11,7 @@ const contactController = require('../controllers/contactController');
 // ROUTES PUBLIQUES (authentification admin)
 // ================================
 router.post('/login', adminController.loginAdmin);
+router.post('/logout', adminController.logoutAdmin);
 router.post('/setup', adminController.createAdmin);
 router.get('/verify', adminController.verifyAdminToken);
 

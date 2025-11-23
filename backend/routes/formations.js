@@ -4,7 +4,7 @@ const formationController = require('../controllers/formationController');
 
 // Routes publiques
 router.get('/', formationController.getAllFormations);
-router.get('/level/:level', formationController.getFormationsByLevel);
+router.get('/category/:category', formationController.getFormationsByCategory);  // ✅ NOUVELLE ROUTE
 router.get('/:id', formationController.getFormationById);
 
 // Routes admin (à protéger plus tard avec middleware auth)

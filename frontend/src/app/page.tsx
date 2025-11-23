@@ -67,7 +67,7 @@ export default function Home() {
                   playsInline
                   preload="metadata"
                 >
-                  <source src="/videos/Video1.mp4" type="video/mp4" />
+                  <source src="/videos/FOR.mp4" type="video/mp4" />
                 </video>
               </div>
               
@@ -102,7 +102,7 @@ export default function Home() {
                   playsInline
                   preload="metadata"
                 >
-                  <source src="/videos/Video.mp4" type="video/mp4" />
+                  <source src="/videos/PR.mp4" type="video/mp4" />
                 </video>
               </div>
               
@@ -557,26 +557,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* CTA Final */}
-        <section className="py-16 bg-gradient-to-r from-black via-gray-800 to-gray-900">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
-              Prête à révéler votre beauté ?
-            </h2>
-            <p className="text-lg md:text-xl text-gray-200 mb-8 max-w-2xl mx-auto">
-              Prenez rendez-vous pour une consultation personnalisée et découvrez 
-              tout ce que nous pouvons faire pour vous
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/contact" className="bg-white text-black px-8 py-4 rounded-full text-lg font-medium hover:bg-gray-100 transition-all duration-300 shadow-lg hover:shadow-xl hover:scale-105">
-                Réserver une consultation
-              </Link>
-              <Link href="/prestations" className="border-2 border-white text-white px-8 py-4 rounded-full text-lg font-medium hover:bg-white hover:text-black transition-all duration-300">
-                Voir nos prestations
-              </Link>
-            </div>
-          </div>
-        </section>
+        
       </div>
     </>
   )
