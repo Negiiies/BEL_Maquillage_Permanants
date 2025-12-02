@@ -1,22 +1,37 @@
 const express = require('express');
 const router = express.Router();
-const upload = require('../config/upload');
+const { uploadService, uploadFormation } = require('../config/upload');
 const uploadController = require('../controllers/uploadController');
 const { authMiddleware } = require('../controllers/adminController');
 
-// Upload d'une image (protégé par auth admin)
+// ⭐ UPLOAD IMAGE SERVICE
 router.post(
   '/service-image',
   authMiddleware,
-  upload.single('image'),
+  uploadService.single('image'),
   uploadController.uploadServiceImage
 );
 
-// Suppression d'une image (protégé par auth admin)
+// ⭐ UPLOAD IMAGE FORMATION (NOUVEAU)
+router.post(
+  '/formation-image',
+  authMiddleware,
+  uploadFormation.single('image'),
+  uploadController.uploadFormationImage
+);
+
+// ⭐ SUPPRESSION IMAGE SERVICE
 router.delete(
   '/service-image/:filename',
   authMiddleware,
   uploadController.deleteServiceImage
+);
+
+// ⭐ SUPPRESSION IMAGE FORMATION (NOUVEAU)
+router.delete(
+  '/formation-image/:filename',
+  authMiddleware,
+  uploadController.deleteFormationImage
 );
 
 module.exports = router;

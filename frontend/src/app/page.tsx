@@ -2,16 +2,18 @@
 
 import Link from 'next/link'
 import { ArrowDown } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect } from 'react'
 import LogoTransition from '@/components/LogoTransition'
 
 export default function Home() {
   const leftVideoRef = useRef<HTMLVideoElement | null>(null)
   const rightVideoRef = useRef<HTMLVideoElement | null>(null)
+  const ctaSectionRef = useRef<HTMLDivElement | null>(null) // ✅ Référence à la section CTA
   const [leftVideoPlaying, setLeftVideoPlaying] = useState(false)
   const [rightVideoPlaying, setRightVideoPlaying] = useState(false)
   const [showTransition, setShowTransition] = useState(true)
   const [showContent, setShowContent] = useState(false)
+  const [parallaxOffset, setParallaxOffset] = useState(0) // ✅ Offset calculé depuis la section
 
   const handleTransitionComplete = () => {
     setShowTransition(false)
@@ -19,6 +21,31 @@ export default function Home() {
       setShowContent(true)
     }, 300)
   }
+
+  // ✅ Effet scroll pour parallax - STYLE ELEMENTOR
+  useEffect(() => {
+    const handleScroll = () => {
+      if (ctaSectionRef.current) {
+        const rect = ctaSectionRef.current.getBoundingClientRect()
+        const windowHeight = window.innerHeight
+        
+        // Calculer le centre de la section par rapport à la fenêtre
+        const sectionCenter = rect.top + rect.height / 2
+        const windowCenter = windowHeight / 2
+        
+        // Distance du centre de la section au centre de la fenêtre
+        const distanceFromCenter = windowCenter - sectionCenter
+        
+        // Appliquer le parallax (plus on scroll, plus ça bouge)
+        const offset = distanceFromCenter * 0.3
+        setParallaxOffset(offset)
+      }
+    }
+
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    handleScroll() // ✅ Appeler au chargement
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
 
   const handleMouseEnter = async (videoRef: React.RefObject<HTMLVideoElement | null>, setPlaying: (playing: boolean) => void) => {
     if (videoRef.current) {
@@ -48,7 +75,8 @@ export default function Home() {
       )}
 
       <div className={`relative transition-opacity duration-1000 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
-        {/* Hero Section avec 2 vidéos */}
+        
+        {/* ✅ HERO SECTION AVEC 2 VIDÉOS - INCHANGÉ */}
         <section className="h-screen relative overflow-hidden">
           <div className="flex h-full">
             {/* Vidéo Prestations */}
@@ -61,7 +89,7 @@ export default function Home() {
                 <video
                   ref={leftVideoRef}
                   className="absolute inset-0 w-full h-full object-cover transition-all duration-700 filter blur-sm group-hover:blur-none group-hover:scale-105"
-                  style={{ objectPosition: 'center 10%' }}
+                  style={{ objectPosition: 'center 40%' }}
                   muted
                   loop
                   playsInline
@@ -79,9 +107,11 @@ export default function Home() {
                     Nos Prestations
                   </h1>
                   <div className="w-8 h-px bg-white opacity-60 mb-4"></div>
-                  <button className="text-xs md:text-sm font-medium tracking-wider uppercase opacity-90 hover:opacity-100 transition-opacity underline underline-offset-4 font-sans">
-                    Découvrir
-                  </button>
+                  <Link href="/prestations">
+                    <button className="text-xs md:text-sm font-medium tracking-wider uppercase opacity-90 hover:opacity-100 transition-opacity underline underline-offset-4 font-sans">
+                      Découvrir
+                    </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -96,7 +126,7 @@ export default function Home() {
                 <video
                   ref={rightVideoRef}
                   className="absolute inset-0 w-full h-full object-cover transition-all duration-700 filter blur-sm group-hover:blur-none group-hover:scale-105"
-                  style={{ objectPosition: 'center 10%' }}
+                  style={{ objectPosition: 'center 40%' }}
                   muted
                   loop
                   playsInline
@@ -114,9 +144,11 @@ export default function Home() {
                     Nos Formations
                   </h1>
                   <div className="w-8 h-px bg-white opacity-60 mb-4"></div>
-                  <button className="text-xs md:text-sm font-medium tracking-wider uppercase opacity-90 hover:opacity-100 transition-opacity underline underline-offset-4 font-sans">
-                    Découvrir
-                  </button>
+                  <Link href="/formations">
+                    <button className="text-xs md:text-sm font-medium tracking-wider uppercase opacity-90 hover:opacity-100 transition-opacity underline underline-offset-4 font-sans">
+                      Découvrir
+                    </button>
+                  </Link>
                 </div>
               </div>
             </div>
@@ -135,104 +167,152 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Vidéo présentation plein écran */}
-        <section className="h-screen relative overflow-hidden">
-          <video 
-            className="absolute top-0 left-0 w-full h-full object-cover"
-            style={{ objectPosition: 'center 10%' }}
-            autoPlay
-            muted
-            loop
-            playsInline
-          >
-            <source src="/videos/presentation-bel.mp4" type="video/mp4" />
-          </video>
-          
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
-            <div className="text-center text-white max-w-4xl px-4">
-              <h2 className="text-3xl md:text-5xl lg:text-7xl font-bold mb-4 md:mb-6">
-                L'Art de la Beauté
+        {/* ✨ SECTION ÉDITORIALE MAGAZINE - REMPLACE VIDÉO */}
+        <section className="min-h-screen bg-[#FAF7F2] py-32 px-8 font-serif">
+          <div className="max-w-7xl mx-auto">
+            
+            <div className="text-center mb-20">
+              <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
+              <p className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-6">
+                BEL Institut de Beauté
+              </p>
+              <h2 className="text-6xl md:text-7xl lg:text-8xl font-light leading-[1.1] mb-8">
+                <span className="italic font-extralight text-neutral-700">L'Art</span><br/>
+                <span className="text-neutral-900">de la Beauté</span>
               </h2>
-              <p className="text-lg md:text-xl lg:text-2xl mb-6 md:mb-8 font-light opacity-90">
+              <p className="text-xl text-neutral-700 max-w-3xl mx-auto font-light leading-relaxed">
                 Découvrez notre savoir-faire unique en maquillage permanent
               </p>
-              <button className="bg-white bg-opacity-20 text-white px-6 md:px-8 py-3 md:py-4 rounded-full font-medium hover:bg-opacity-30 transition-all duration-300 backdrop-blur-md text-sm md:text-base">
-                Regarder la vidéo complète
-              </button>
             </div>
-          </div>
-        </section>
 
-        {/* Section Pourquoi choisir BEL avec effet volet */}
-        <section className="py-20 bg-gradient-to-b from-white to-gray-50">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="relative">
-                <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl">
+            <div className="grid md:grid-cols-2 gap-16 items-start max-w-6xl mx-auto">
+              
+              <div className="space-y-8">
+                <div className="aspect-[3/4] bg-neutral-200 overflow-hidden">
                   <img 
-                    src="/images/Bel.JPG" 
-                    alt="BEL Institut de Beauté"
+                    src="/images/deux.JPG" 
+                    alt="L'Art de la Beauté"
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 bg-white rounded-2xl shadow-xl p-6">
+                <div className="border-t-2 border-neutral-900 pt-6">
+                  <p className="text-neutral-700 font-light leading-relaxed">
+                    Notre approche unique combine expertise technique et sens artistique pour révéler 
+                    votre beauté naturelle avec subtilité et élégance.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-12">
+                <div className="space-y-6">
+                  <div className="text-7xl font-light text-neutral-300 leading-none">01</div>
+                  <h3 className="text-3xl font-light border-b border-neutral-300 pb-4">
+                    Notre Philosophie
+                  </h3>
+                  <p className="text-neutral-700 font-light leading-relaxed">
+                    Chez BEL, chaque prestation est pensée comme une œuvre unique. Nous croyons que 
+                    la beauté réside dans l'authenticité et la confiance en soi.
+                  </p>
+                  <p className="text-neutral-700 font-light leading-relaxed">
+                    Notre mission est de sublimer ce qui vous rend unique, avec des techniques 
+                    avant-gardistes et un accompagnement personnalisé.
+                  </p>
+                </div>
+
+                <div className="aspect-video bg-neutral-200 overflow-hidden">
+                  <img 
+                    src="/images/Carole.JPG" 
+                    alt="Expertise BEL"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+
+                <div className="border-l-2 border-neutral-900 pl-6 py-4">
+                  <p className="text-2xl font-light italic text-neutral-800 leading-relaxed mb-4">
+                    "La beauté commence là où l'authenticité rencontre l'expertise"
+                  </p>
+                  <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
+                    — Carole, Fondatrice
+                  </p>
+                </div>
+
+                <div className="grid grid-cols-3 gap-8 border-t border-neutral-300 pt-8">
                   <div className="text-center">
-                    <div className="text-4xl font-bold text-gray-900">5+</div>
-                    <div className="text-sm text-gray-600 mt-1">Années d'expertise</div>
+                    <div className="text-4xl font-light mb-2">5+</div>
+                    <p className="text-xs uppercase tracking-wider text-neutral-600">Années</p>
+                  </div>
+                  <div className="text-center border-l border-neutral-300">
+                    <div className="text-4xl font-light mb-2">500+</div>
+                    <p className="text-xs uppercase tracking-wider text-neutral-600">Clientes</p>
+                  </div>
+                  <div className="text-center border-l border-neutral-300">
+                    <div className="text-4xl font-light mb-2">98%</div>
+                    <p className="text-xs uppercase tracking-wider text-neutral-600">Satisfaction</p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-6">
-                <div className="inline-block">
-                  <span className="text-sm tracking-[0.3em] uppercase text-gray-500">
-                    Pourquoi choisir BEL Studio ?
-                  </span>
-                </div>
+            </div>
+          </div>
+        </section>
 
-                <h2 className="text-4xl md:text-5xl font-light text-gray-900 leading-tight">
+        {/* POURQUOI BEL - STYLE MAGAZINE */}
+        <section className="py-32 bg-white border-t border-neutral-300 font-serif">
+          <div className="max-w-7xl mx-auto px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              
+              <div className="relative">
+                <div className="aspect-[4/5] overflow-hidden">
+                  <img 
+                    src="/images/trois.JPG" 
+                    alt="BEL Institut"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+                <div className="absolute -bottom-6 -right-6 bg-[#FAF7F2] border border-neutral-300 p-8">
+                  <div className="text-center">
+                    <div className="text-5xl font-light text-neutral-900">5+</div>
+                    <div className="text-sm text-neutral-600 mt-2 tracking-wider">Années d'expertise</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-8">
+                <div className="w-12 h-[1px] bg-neutral-900 mb-8"></div>
+                <p className="text-xs tracking-[0.3em] uppercase text-neutral-500">
+                  Pourquoi choisir BEL ?
+                </p>
+
+                <h2 className="text-5xl md:text-6xl font-light text-neutral-900 leading-tight">
                   L'Excellence au Service de Votre Beauté
                 </h2>
 
-                <p className="text-lg text-gray-600 leading-relaxed">
-                  Chez BEL Studio, nous nous engageons à offrir des soins de qualité qui révèlent 
-                  votre beauté naturelle.
+                <p className="text-lg text-neutral-700 leading-relaxed font-light">
+                  Chez BEL, nous nous engageons à offrir des soins de qualité qui révèlent 
+                  votre beauté naturelle avec des techniques avancées et des produits haut de gamme.
                 </p>
 
-                <p className="text-base text-gray-600 leading-relaxed">
-                  Notre expertise repose sur des techniques avancées et des produits haut de 
-                  gamme, pour une expérience unique et personnalisée.
-                </p>
-
-                <div className="space-y-4 pt-4">
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-6 h-6 text-gray-400 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                    </svg>
-                    <span className="text-gray-700">Soin minutieux et personnalisé</span>
+                <div className="space-y-4 pt-6">
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-[1px] bg-neutral-400 mt-3"></div>
+                    <span className="text-neutral-700 font-light">Soin minutieux et personnalisé</span>
                   </div>
-
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-6 h-6 text-gray-400 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                    </svg>
-                    <span className="text-gray-700">Équipe experte et passionnée</span>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-[1px] bg-neutral-400 mt-3"></div>
+                    <span className="text-neutral-700 font-light">Équipe experte et passionnée</span>
                   </div>
-
-                  <div className="flex items-start space-x-3">
-                    <svg className="w-6 h-6 text-gray-400 flex-shrink-0 mt-1" fill="currentColor" viewBox="0 0 20 20">
-                      <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"/>
-                    </svg>
-                    <span className="text-gray-700">Des produits respectueux de votre bien-être</span>
+                  <div className="flex items-start space-x-4">
+                    <div className="w-8 h-[1px] bg-neutral-400 mt-3"></div>
+                    <span className="text-neutral-700 font-light">Produits respectueux de votre bien-être</span>
                   </div>
                 </div>
 
-                <div className="pt-6">
+                <div className="pt-8">
                   <Link href="/prestations">
-                    <button className="group inline-flex items-center px-8 py-3 bg-gray-900 text-white text-sm tracking-wider uppercase hover:bg-gray-800 transition-all duration-300">
-                      Nos Prestations
-                      <svg className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    <button className="group inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 hover:border-neutral-500 transition-colors text-sm uppercase tracking-[0.2em]">
+                      <span>Nos Prestations</span>
+                      <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
                     </button>
                   </Link>
@@ -242,59 +322,76 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Section Services */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-6">
-                Découvrez nos Différents Services
+        {/* SERVICES - STYLE MAGAZINE */}
+        <section className="py-32 bg-[#FAF7F2] border-t border-neutral-300 font-serif">
+          <div className="max-w-7xl mx-auto px-8">
+            
+            <div className="text-center mb-20">
+              <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
+              <h2 className="text-5xl md:text-6xl font-light text-neutral-900 mb-8">
+                Découvrez nos Services
               </h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                Découvrez nos soins spécialisés, pensés pour révéler et sublimer votre beauté naturelle.
-              </p>
-              <p className="text-base text-gray-600 max-w-3xl mx-auto mt-4">
-                Nos prestations sont réalisées avec minutie et expertise, afin de vous offrir une expérience 
-                personnalisée dans une ambiance apaisante et professionnelle.
+              <p className="text-lg text-neutral-700 max-w-3xl mx-auto leading-relaxed font-light">
+                Nos prestations sont réalisées avec minutie et expertise, dans une ambiance 
+                apaisante et professionnelle.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-4xl mx-auto">
-              <div className="text-center group cursor-pointer">
-                <div className="relative w-48 h-48 mx-auto mb-6 rounded-full overflow-hidden shadow-lg group-hover:shadow-2xl transition-all duration-300">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-16 max-w-6xl mx-auto">
+              
+              <div className="text-center group">
+                <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
                   <img 
-                    src="/images/Bel.JPG" 
+                    src="/images/sourcilss.JPG" 
                     alt="Sourcils"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
-                <h3 className="text-2xl font-light text-gray-900 mb-3 tracking-wide">
+                <h3 className="text-3xl font-light text-neutral-900 mb-4 tracking-wide">
                   SOURCILS
                 </h3>
-                <p className="text-gray-600 mb-6 leading-relaxed max-w-md mx-auto">
-                  Redéfinissez vos sourcils pour un regard structuré et harmonieux. Nos 
-                  techniques précises mettent en valeur votre expression naturelle.
+                <p className="text-neutral-700 mb-6 leading-relaxed font-light">
+                  Redéfinissez vos sourcils pour un regard structuré et harmonieux avec nos techniques précises.
                 </p>
-                <button className="text-sm tracking-wider uppercase border-b-2 border-gray-900 pb-1 hover:border-gray-600 transition-colors">
+                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
                   Découvrir
                 </button>
               </div>
 
-              <div className="text-center group cursor-pointer">
-                <div className="relative w-48 h-48 mx-auto mb-6 rounded-full overflow-hidden shadow-lg group-hover:shadow-2xl transition-all duration-300">
+              <div className="text-center group">
+                <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
                   <img 
-                    src="/images/Carole.JPG" 
-                    alt="Tricopigmentation"
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                    src="/images/cilss.JPG" 
+                    alt="Cils"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
-                <h3 className="text-2xl font-light text-gray-900 mb-3 tracking-wide">
-                  TRICOPIGMENTATION
+                <h3 className="text-3xl font-light text-neutral-900 mb-4 tracking-wide">
+                  CILS
                 </h3>
-                <p className="text-gray-600 mb-6 leading-relaxed max-w-md mx-auto">
-                  Retrouvez densité et confiance avec la tricopigmentation pour cheveux et 
-                  barbe, une technique offrant un effet naturel et durable.
+                <p className="text-neutral-700 mb-6 leading-relaxed font-light">
+                  Sublimez votre regard avec nos extensions et rehaussements de cils pour un effet spectaculaire.
                 </p>
-                <button className="text-sm tracking-wider uppercase border-b-2 border-gray-900 pb-1 hover:border-gray-600 transition-colors">
+                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
+                  Découvrir
+                </button>
+              </div>
+
+              <div className="text-center group">
+                <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
+                  <img 
+                    src="/images/levres.JPG" 
+                    alt="Lèvres"
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                </div>
+                <h3 className="text-3xl font-light text-neutral-900 mb-4 tracking-wide">
+                  LÈVRES
+                </h3>
+                <p className="text-neutral-700 mb-6 leading-relaxed font-light">
+                  Révélez la beauté de vos lèvres avec notre expertise en maquillage permanent pour un sourire éclatant.
+                </p>
+                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
                   Découvrir
                 </button>
               </div>
@@ -302,81 +399,87 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Section CTA avec image */}
-        <section className="relative h-[70vh] flex items-center justify-center overflow-hidden">
+        {/* ✨ CTA AVEC EFFET PARALLAX - STYLE ELEMENTOR */}
+        <section 
+          ref={ctaSectionRef}
+          className="relative h-[70vh] flex items-center justify-center overflow-hidden"
+        >
           <div className="absolute inset-0">
             <img 
               src="/images/Bel.JPG" 
               alt="Prenons soin de vous"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover transition-transform duration-100 ease-out"
+              style={{
+                transform: `translate3d(0px, ${parallaxOffset}px, 0px)`,
+                objectPosition: 'center center'
+              }}
             />
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/50"></div>
           </div>
           
-          <div className="relative z-10 text-center text-white px-4">
+          <div className="relative z-10 text-center text-white px-4 font-serif">
             <p className="text-sm tracking-[0.3em] uppercase mb-4 opacity-90">
               Prenons soin de vous...
             </p>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-light mb-6 max-w-4xl mx-auto leading-tight">
-              Redécouvrez votre beauté naturelle avec nos soins experts.
+              Redécouvrez votre beauté naturelle
             </h2>
             <Link href="/contact">
-              <button className="mt-8 px-8 py-4 border-2 border-white text-white text-sm tracking-wider uppercase hover:bg-white hover:text-gray-900 transition-all duration-300">
+              <button className="mt-8 px-12 py-5 border-2 border-white text-white text-sm tracking-wider uppercase hover:bg-white hover:text-gray-900 transition-all duration-300">
                 Réserver un Soin
               </button>
             </Link>
           </div>
         </section>
 
-        {/* Section À propos Pauline */}
-        <section className="py-20 bg-gradient-to-b from-gray-50 to-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-6 lg:pr-12">
-                <div className="inline-block">
-                  <span className="text-sm tracking-[0.3em] uppercase text-gray-500">
-                    À propos de moi
-                  </span>
-                </div>
+        {/* À PROPOS - STYLE MAGAZINE */}
+        <section className="py-32 bg-white border-t border-neutral-300 font-serif">
+          <div className="max-w-7xl mx-auto px-8">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+              
+              <div className="space-y-8 lg:pr-12">
+                <div className="w-12 h-[1px] bg-neutral-900 mb-8"></div>
+                <p className="text-xs tracking-[0.3em] uppercase text-neutral-500">
+                  À propos de moi
+                </p>
 
-                <h2 className="text-4xl md:text-5xl font-light text-gray-900">
+                <h2 className="text-5xl md:text-6xl font-light text-neutral-900">
                   Je suis Carole
                 </h2>
 
-                <div className="space-y-4 text-gray-600 leading-relaxed border-l-2 border-gray-300 pl-6">
+                <div className="space-y-6 text-neutral-700 leading-relaxed border-l-2 border-neutral-900 pl-8 font-light">
                   <p>
-                    Fondatrice de BEL maquillage permanet, spécialisée dans le bien-être et la beauté.
+                    Fondatrice de BEL maquillage permanent, spécialisée dans le bien-être et la beauté.
                   </p>
-
                   <p>
-                    Avec une passion pour l'esthétique et le développement personnel, 
-                    mon objectif est de vous accompagner pour révéler le meilleur de 
-                    vous-même. Chaque soin est une expérience unique, pensée pour 
-                    sublimer votre beauté naturelle et renforcer votre confiance.
+                    Mon objectif est de vous accompagner pour révéler le meilleur de vous-même. 
+                    Chaque soin est une expérience unique, pensée pour sublimer votre beauté naturelle.
                   </p>
-
                   <p>
-                    Mon approche va bien au-delà d'un simple soin. C'est un voyage 
-                    sensoriel qui redéfinit votre perception de la beauté, vous permettant 
+                    C'est un voyage sensoriel qui redéfinit votre perception de la beauté, vous permettant 
                     de vous reconnecter à vous-même et de rayonner pleinement.
                   </p>
                 </div>
 
-                <div className="pt-6">
+                <div className="pt-8">
                   <Link href="/contact">
-                    <button className="text-sm tracking-wider uppercase border-b-2 border-gray-900 pb-1 hover:border-gray-600 transition-colors">
-                      Réservez votre soin
+                    <button className="inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 hover:border-neutral-500 transition-colors text-sm uppercase tracking-[0.2em]">
+                      <span>Réservez votre soin</span>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                      </svg>
                     </button>
                   </Link>
                 </div>
               </div>
 
               <div className="relative">
-                <div className="aspect-[4/5] rounded-2xl overflow-hidden shadow-2xl">
+                <div className="aspect-[4/5] overflow-hidden">
                   <img 
-                    src="/images/Carole.JPG" 
-                    alt="Pauline - Fondatrice BEL Studio"
+                    src="/images/quatre.JPG" 
+                    alt="Carole - Fondatrice"
                     className="w-full h-full object-cover"
+                    style={{ objectPosition: 'center 20%' }}
                   />
                 </div>
               </div>
@@ -384,180 +487,59 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Section Témoignages */}
-        <section className="py-20 bg-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
-              <p className="text-sm tracking-[0.3em] uppercase text-gray-500 mb-4">
-                BEL Studio
+        {/* TÉMOIGNAGES - STYLE MAGAZINE */}
+        <section className="py-32 bg-[#FAF7F2] border-t border-neutral-300 font-serif">
+          <div className="max-w-7xl mx-auto px-8">
+            
+            <div className="text-center mb-20">
+              <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
+              <p className="text-xs tracking-[0.3em] uppercase text-neutral-500 mb-6">
+                Témoignages
               </p>
-              <h2 className="text-4xl md:text-5xl font-light text-gray-900 mb-6">
+              <h2 className="text-5xl md:text-6xl font-light text-neutral-900 mb-8">
                 Les Retours Clients
               </h2>
-              <p className="text-lg text-gray-600 max-w-3xl mx-auto leading-relaxed">
-                Découvrez les témoignages de celles et ceux qui ont fait confiance à notre expertise 
-                pour révéler leur beauté naturelle.
+              <p className="text-lg text-neutral-700 max-w-3xl mx-auto leading-relaxed font-light">
+                Découvrez les témoignages de celles qui ont fait confiance à notre expertise.
               </p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {/* Avis 1 - MANON HANS */}
-              <div className="bg-gray-50 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold text-xl">
-                    M
+              
+              {[
+                { name: 'Manon Hans', initial: 'M', color: 'bg-purple-200', text: 'Magnifique prestation de rehaussement de cils coréen + teinture. Le résultat est incroyable. Carole est super sympa!' },
+                { name: 'Marion mrp', initial: 'M', color: 'bg-pink-200', text: 'Je suis RA-VIE ! J\'ai fais une prestation de rehaussement de cils coréen et le résultat est juste magnifique 😍' },
+                { name: 'Charlotte', initial: 'C', color: 'bg-indigo-200', text: 'Un grand merci à Carole pour son travail exceptionnel sur mes sourcils ! Très professionnelle et à l\'écoute.' },
+                { name: 'Mélia Belkacemi', initial: 'M', color: 'bg-rose-200', text: 'Un moment beauté & bonne humeur ✨ Le résultat est vraiment bluffant, naturel, soigné.' },
+                { name: 'Manon Wrk', initial: 'M', color: 'bg-violet-200', text: 'Très satisfaite ! Son travail est minutieux et elle a réussi à réaliser un cover magnifique.' },
+                { name: 'Laura', initial: 'L', color: 'bg-green-200', text: 'Vraiment un grand merci ! Carole est professionnel, rassurante et vraiment minutieuse.' }
+              ].map((testimonial, index) => (
+                <div key={index} className="bg-white border border-neutral-300 p-8 hover:shadow-lg transition-shadow">
+                  <div className="flex items-center mb-6">
+                    <div className={`w-12 h-12 rounded-full ${testimonial.color} flex items-center justify-center text-neutral-900 font-medium text-xl`}>
+                      {testimonial.initial}
+                    </div>
+                    <div className="ml-4">
+                      <div className="font-medium text-neutral-900">{testimonial.name}</div>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <div className="font-semibold text-gray-900">Manon Hans</div>
-                    <div className="text-sm text-gray-500">Il y a 1 mois</div>
+                  <div className="flex mb-4">
+                    {[...Array(5)].map((_, i) => (
+                      <svg key={i} className="w-4 h-4 text-yellow-400 fill-current" viewBox="0 0 20 20">
+                        <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
+                      </svg>
+                    ))}
                   </div>
+                  <p className="text-neutral-700 leading-relaxed text-sm font-light">
+                    {testimonial.text}
+                  </p>
                 </div>
-                <div className="flex mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-700 leading-relaxed text-sm">
-                  Magnifique prestation de rehaussement de cils coréen + teinture. Le résultat est incroyable. 
-                  Carole est super sympa, à l'écoute et prend son temps pour voir le meilleur résultat possible ! 
-                  Je recommande fortement ! Un grand merci à elle !
-                </p>
-              </div>
+              ))}
 
-              {/* Avis 2 - Marion mrp */}
-              <div className="bg-gray-50 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-pink-500 flex items-center justify-center text-white font-bold text-xl">
-                    M
-                  </div>
-                  <div className="ml-4">
-                    <div className="font-semibold text-gray-900">Marion mrp</div>
-                    <div className="text-sm text-gray-500">Il y a 2 mois</div>
-                  </div>
-                </div>
-                <div className="flex mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-700 leading-relaxed text-sm">
-                  Je suis RA-VIE ! J'ai fais une prestation de rehaussement de cils coréen et le résultat est juste magnifique 😍😍
-                  Carole est professionnel, douce et gentille 🥰
-                  J'ai passé un excellent moment, je n'ai pas vu le temps passé et le résultat est à la hauteur de mes attentes !
-                </p>
-              </div>
-
-              {/* Avis 3 - Hello (Charlotte) */}
-              <div className="bg-gray-50 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-indigo-500 flex items-center justify-center text-white font-bold text-xl">
-                    H
-                  </div>
-                  <div className="ml-4">
-                    <div className="font-semibold text-gray-900">Charlotte</div>
-                    <div className="text-sm text-gray-500">Il y a 5 mois</div>
-                  </div>
-                </div>
-                <div className="flex mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-700 leading-relaxed text-sm">
-                  Un grand merci à Carole pour son travail exceptionnel sur mes sourcils ! 
-                  La précédente pigmentation avait très mal vieillit et grâce à son savoir-faire, mes sourcils sont à nouveau très jolis. 
-                  Carole est très professionnelle, douce, rigoureuse et à l'écoute. Je suis ravie du résultat !
-                </p>
-              </div>
-
-              {/* Avis 4 - Mélia BELKACEMI */}
-              <div className="bg-gray-50 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-rose-400 flex items-center justify-center text-white font-bold text-xl">
-                    M
-                  </div>
-                  <div className="ml-4">
-                    <div className="font-semibold text-gray-900">Mélia Belkacemi</div>
-                    <div className="text-sm text-gray-500">Il y a 2 mois</div>
-                  </div>
-                </div>
-                <div className="flex mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-700 leading-relaxed text-sm">
-                  ✨ Un moment beauté & bonne humeur ✨
-                  J'ai réalisé un Brow Lift et un Lash Lift coréen et... waouh ! 
-                  Le résultat est vraiment bluffant, naturel, soigné, et surtout parfaitement exécuté. 
-                  Le travail est précis, minutieux, avec un vrai sens du détail. 
-                  Un vrai moment de partage entre rires et bien-être, dans une ambiance douce et positive.
-                </p>
-              </div>
-
-              {/* Avis 5 - Manon Wrk */}
-              <div className="bg-gray-50 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-violet-500 flex items-center justify-center text-white font-bold text-xl">
-                    M
-                  </div>
-                  <div className="ml-4">
-                    <div className="font-semibold text-gray-900">Manon Wrk</div>
-                    <div className="text-sm text-gray-500">Il y a 9 mois</div>
-                  </div>
-                </div>
-                <div className="flex mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-700 leading-relaxed text-sm">
-                  Très satisfaite de mon rdv avec Carole pour réaliser un combo brows, elle a parfaitement pris en compte 
-                  mes demandes et mes exigences. Son travail est minutieux et elle a réussi à réaliser un cover magnifique 
-                  sur mon ancien tatouage. 5 étoiles pour sa patience, son perfectionnisme et son professionnalisme !
-                </p>
-              </div>
-
-              {/* Avis 6 - Loussouarn Laura */}
-              <div className="bg-gray-50 rounded-2xl p-8 shadow-sm hover:shadow-md transition-shadow">
-                <div className="flex items-center mb-4">
-                  <div className="w-12 h-12 rounded-full bg-green-500 flex items-center justify-center text-white font-bold text-xl">
-                    L
-                  </div>
-                  <div className="ml-4">
-                    <div className="font-semibold text-gray-900">Loussouarn Laura</div>
-                    <div className="text-sm text-gray-500">Il y a 11 mois</div>
-                  </div>
-                </div>
-                <div className="flex mb-3">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-5 h-5 text-yellow-400 fill-current" viewBox="0 0 20 20">
-                      <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z"/>
-                    </svg>
-                  ))}
-                </div>
-                <p className="text-gray-700 leading-relaxed text-sm">
-                  Vraiment un grand merci je suis totalement fan ! 
-                  Venue pour un rattrapage je ressors tellement heureuse et satisfaite. 
-                  Carole est professionnel, rassurante et vraiment minutieuse elle a redessiner mes lèvres à la perfection. 
-                  Vous pouvez aller dans son institut les yeux fermés je la recommande vivement
-                </p>
-              </div>
             </div>
           </div>
         </section>
 
-        
       </div>
     </>
   )

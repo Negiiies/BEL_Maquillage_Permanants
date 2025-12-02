@@ -1,18 +1,15 @@
 const { Formation } = require('../models');
 
-// Récupérer toutes les formations actives
-const getAllFormations = async (req, res) => {
+// Récupérer toutes les formations
+exports.getAllFormations = async (req, res) => {
   try {
     const formations = await Formation.findAll({
-      where: { isActive: true },
       order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']]
     });
-    
+
     res.json({
       success: true,
-      message: 'Formations récupérées avec succès',
-      data: formations,
-      count: formations.length
+      data: formations
     });
   } catch (error) {
     console.error('Erreur getAllFormations:', error);
@@ -24,33 +21,30 @@ const getAllFormations = async (req, res) => {
   }
 };
 
-// ✅ NOUVELLE FONCTION : Récupérer les formations par catégorie
-const getFormationsByCategory = async (req, res) => {
+// Récupérer les formations par catégorie (ancien système)
+exports.getFormationsByCategory = async (req, res) => {
   try {
     const { category } = req.params;
-    
     const validCategories = ['pigmentation', 'regard_sourcils'];
+
     if (!validCategories.includes(category)) {
       return res.status(400).json({
         success: false,
-        message: 'Catégorie invalide',
-        validCategories: validCategories
+        message: 'Catégorie invalide. Utilisez: pigmentation ou regard_sourcils'
       });
     }
-    
+
     const formations = await Formation.findAll({
       where: { 
-        category: category,
+        category,
         isActive: true 
       },
-      order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']]
+      order: [['sortOrder', 'ASC']]
     });
-    
+
     res.json({
       success: true,
-      message: `Formations ${category} récupérées avec succès`,
-      data: formations,
-      count: formations.length
+      data: formations
     });
   } catch (error) {
     console.error('Erreur getFormationsByCategory:', error);
@@ -62,30 +56,58 @@ const getFormationsByCategory = async (req, res) => {
   }
 };
 
-// Récupérer une formation par ID
-const getFormationById = async (req, res) => {
+// 🆕 Récupérer les formations par sous-catégorie (nouveau système)
+exports.getFormationsBySubcategory = async (req, res) => {
   try {
-    const { id } = req.params;
-    
-    if (!id || isNaN(id)) {
+    const { subcategory } = req.params;
+    const validSubcategories = ['cils', 'levres', 'sourcils'];
+
+    if (!validSubcategories.includes(subcategory)) {
       return res.status(400).json({
         success: false,
-        message: 'ID de formation invalide'
+        message: 'Sous-catégorie invalide. Utilisez: cils, levres ou sourcils'
       });
     }
-    
+
+    const formations = await Formation.findAll({
+      where: { 
+        subcategory,
+        isActive: true 
+      },
+      order: [['sortOrder', 'ASC'], ['createdAt', 'DESC']]
+    });
+
+    res.json({
+      success: true,
+      data: formations,
+      count: formations.length
+    });
+  } catch (error) {
+    console.error('Erreur getFormationsBySubcategory:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur lors de la récupération des formations',
+      error: error.message
+    });
+  }
+};
+
+// Récupérer une formation par ID
+exports.getFormationById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
     const formation = await Formation.findByPk(id);
-    
+
     if (!formation) {
       return res.status(404).json({
         success: false,
         message: 'Formation non trouvée'
       });
     }
-    
+
     res.json({
       success: true,
-      message: 'Formation récupérée avec succès',
       data: formation
     });
   } catch (error) {
@@ -98,38 +120,33 @@ const getFormationById = async (req, res) => {
   }
 };
 
-// Créer une nouvelle formation (admin)
-const createFormation = async (req, res) => {
+// Créer une formation (ADMIN)
+exports.createFormation = async (req, res) => {
   try {
-    const { title, description, price, duration, category, level, sortOrder } = req.body;
-    
-    if (!title || !description || !category) {
+    const { title, description, price, duration, category, subcategory, level, imageUrl } = req.body;
+
+    // Validation
+    if (!title || !description || !price || !duration || !category || !subcategory || !level) {
       return res.status(400).json({
         success: false,
-        message: 'Titre, description et catégorie sont requis'
+        message: 'Tous les champs obligatoires doivent être remplis'
       });
     }
-    
-    const validCategories = ['pigmentation', 'regard_sourcils'];
-    if (!validCategories.includes(category)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Catégorie invalide',
-        validCategories: validCategories
-      });
-    }
-    
+
+    // Créer la formation
     const formation = await Formation.create({
       title,
       description,
       price,
       duration,
       category,
+      subcategory,
       level,
-      sortOrder: sortOrder || 0,
-      isActive: true
+      imageUrl,
+      isActive: true,
+      sortOrder: 0
     });
-    
+
     res.status(201).json({
       success: true,
       message: 'Formation créée avec succès',
@@ -145,43 +162,35 @@ const createFormation = async (req, res) => {
   }
 };
 
-// Mettre à jour une formation (admin)
-const updateFormation = async (req, res) => {
+// Mettre à jour une formation (ADMIN)
+exports.updateFormation = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, price, duration, category, level, sortOrder, isActive } = req.body;
-    
+    const { title, description, price, duration, category, subcategory, level, imageUrl, isActive, sortOrder } = req.body;
+
     const formation = await Formation.findByPk(id);
-    
+
     if (!formation) {
       return res.status(404).json({
         success: false,
         message: 'Formation non trouvée'
       });
     }
-    
-    if (category) {
-      const validCategories = ['pigmentation', 'regard_sourcils'];
-      if (!validCategories.includes(category)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Catégorie invalide',
-          validCategories: validCategories
-        });
-      }
-    }
-    
+
+    // Mettre à jour
     await formation.update({
       title: title || formation.title,
       description: description || formation.description,
       price: price !== undefined ? price : formation.price,
       duration: duration || formation.duration,
       category: category || formation.category,
+      subcategory: subcategory || formation.subcategory,
       level: level || formation.level,
-      sortOrder: sortOrder !== undefined ? sortOrder : formation.sortOrder,
-      isActive: isActive !== undefined ? isActive : formation.isActive
+      imageUrl: imageUrl !== undefined ? imageUrl : formation.imageUrl,
+      isActive: isActive !== undefined ? isActive : formation.isActive,
+      sortOrder: sortOrder !== undefined ? sortOrder : formation.sortOrder
     });
-    
+
     res.json({
       success: true,
       message: 'Formation mise à jour avec succès',
@@ -197,25 +206,25 @@ const updateFormation = async (req, res) => {
   }
 };
 
-// Supprimer une formation (admin)
-const deleteFormation = async (req, res) => {
+// Supprimer une formation (ADMIN)
+exports.deleteFormation = async (req, res) => {
   try {
     const { id } = req.params;
-    
+
     const formation = await Formation.findByPk(id);
-    
+
     if (!formation) {
       return res.status(404).json({
         success: false,
         message: 'Formation non trouvée'
       });
     }
-    
-    await formation.update({ isActive: false });
-    
+
+    await formation.destroy();
+
     res.json({
       success: true,
-      message: 'Formation désactivée avec succès'
+      message: 'Formation supprimée avec succès'
     });
   } catch (error) {
     console.error('Erreur deleteFormation:', error);
@@ -225,13 +234,4 @@ const deleteFormation = async (req, res) => {
       error: error.message
     });
   }
-};
-
-module.exports = {
-  getAllFormations,
-  getFormationsByCategory,  // ✅ NOUVELLE FONCTION
-  getFormationById,
-  createFormation,
-  updateFormation,
-  deleteFormation
 };

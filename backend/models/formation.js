@@ -1,45 +1,59 @@
-'use strict';
-const { Model } = require('sequelize');
+const { DataTypes } = require('sequelize');
 
-module.exports = (sequelize, DataTypes) => {
-  class Formation extends Model {
-    static associate(models) {
-      // associations si besoin plus tard
-    }
-  }
-  
-  Formation.init({
+module.exports = (sequelize) => {
+  const Formation = sequelize.define('Formation', {
+    id: {
+      type: DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true
+    },
     title: {
       type: DataTypes.STRING,
       allowNull: false,
       validate: {
-        len: [3, 200]
+        notEmpty: true,
+        len: [3, 255]
       }
     },
     description: {
       type: DataTypes.TEXT,
-      allowNull: true
+      allowNull: false,
+      validate: {
+        notEmpty: true
+      }
     },
     price: {
       type: DataTypes.DECIMAL(10, 2),
-      allowNull: true,
+      allowNull: false,
       validate: {
         min: 0
       }
     },
     duration: {
       type: DataTypes.STRING,
-      allowNull: true,
-      comment: 'Durée de la formation (ex: "2 jours", "3h")'
+      allowNull: false,
+      comment: 'Durée de la formation (ex: "2 jours", "1 semaine")'
     },
     category: {
-      type: DataTypes.ENUM('pigmentation', 'regard_sourcils'),  // ✅ NOUVELLE CATÉGORIE
-      allowNull: false
+      type: DataTypes.ENUM('pigmentation', 'regard_sourcils'),
+      allowNull: false,
+      comment: 'Catégorie principale (ancien système)'
+    },
+    subcategory: {
+      type: DataTypes.ENUM('cils', 'levres', 'sourcils'),
+      allowNull: false,
+      defaultValue: 'sourcils',
+      comment: 'Sous-catégorie de la formation (nouveau système)'
     },
     level: {
       type: DataTypes.ENUM('debutant', 'intermediaire', 'avance'),
+      allowNull: false,
+      defaultValue: 'debutant'
+    },
+    imageUrl: {
+      type: DataTypes.STRING,
       allowNull: true,
-      comment: 'Niveau de difficulté (optionnel)'
+      comment: 'URL de l\'image de la formation'
     },
     isActive: {
       type: DataTypes.BOOLEAN,
@@ -48,23 +62,12 @@ module.exports = (sequelize, DataTypes) => {
     sortOrder: {
       type: DataTypes.INTEGER,
       defaultValue: 0,
-      comment: 'Ordre d\'affichage'
+      comment: 'Ordre d\'affichage des formations'
     }
   }, {
-    sequelize,
-    modelName: 'Formation',
-    timestamps: true,
-    hooks: {
-      beforeCreate: (formation) => {
-        if (formation.title) formation.title = formation.title.trim();
-        if (formation.description) formation.description = formation.description.trim();
-      },
-      beforeUpdate: (formation) => {
-        if (formation.title) formation.title = formation.title.trim();
-        if (formation.description) formation.description = formation.description.trim();
-      }
-    }
+    tableName: 'Formations',
+    timestamps: true
   });
-  
+
   return Formation;
 };

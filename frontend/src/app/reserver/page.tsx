@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Calendar, Clock, Check, ArrowRight, ArrowLeft, Sparkles, Heart, Eye } from 'lucide-react'
+import { Calendar, Clock, Check, ArrowRight, ArrowLeft, Sparkles, Heart, Eye, ChevronDown } from 'lucide-react'
 import { API_URL } from '@/lib/config'
 
 interface Service {
@@ -33,12 +33,6 @@ const CATEGORY_LABELS: { [key: string]: string } = {
   'cils': 'Cils'
 }
 
-const CATEGORY_MESSAGES: { [key: string]: string } = {
-  'sourcils': 'Sourcils sublimés ✨',
-  'levres': 'Des lèvres parfaites 💋',
-  'cils': 'Préparez votre regard 👁️'
-}
-
 export default function ReservationPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -46,11 +40,9 @@ export default function ReservationPage() {
   
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
+  const [loadingSlots, setLoadingSlots] = useState(false) // ⭐ Loading créneaux
   const [error, setError] = useState('')
-  
-  // ✨ États pour l'animation vidéo
-  const [showAnimation, setShowAnimation] = useState(false)
-  const [animationType, setAnimationType] = useState<'cils' | 'levres' | 'sourcils' | null>(null)
+  const [daysToShow, setDaysToShow] = useState(7)
   
   const [services, setServices] = useState<Service[]>([])
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([])
@@ -97,6 +89,7 @@ export default function ReservationPage() {
   useEffect(() => {
     if (selectedService && step === 2) {
       const fetchTimeSlots = async () => {
+        setLoadingSlots(true) // ⭐ Début loading
         try {
           const response = await fetch(
             `${API_URL}/api/timeslots/available?serviceId=${selectedService.id}`
@@ -107,29 +100,28 @@ export default function ReservationPage() {
           }
         } catch (error) {
           console.error('Erreur chargement créneaux:', error)
+        } finally {
+          setLoadingSlots(false) // ⭐ Fin loading
         }
       }
       fetchTimeSlots()
     }
   }, [selectedService, step])
 
-  // 🎬 Fonction de sélection avec animation vidéo
+  // Sélection service
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service)
-    setAnimationType(service.category as 'cils' | 'levres' | 'sourcils')
-    setShowAnimation(true)
-    // La transition vers step 2 se fera automatiquement quand la vidéo se termine (onEnded)
-  }
-
-  // 🎬 Quand la vidéo se termine
-  const handleVideoEnd = () => {
-    setShowAnimation(false)
+    setDaysToShow(7)
     setStep(2)
   }
 
   const handleTimeSlotSelect = (slot: TimeSlot) => {
     setSelectedTimeSlot(slot)
     setStep(3)
+  }
+
+  const loadMoreDays = () => {
+    setDaysToShow(prev => prev + 7)
   }
 
   const handleSubmitBooking = async () => {
@@ -282,13 +274,14 @@ export default function ReservationPage() {
           </div>
         )}
 
-        {/* Step 2: Choose Time Slot */}
+        {/* Step 2: Choose Time Slot - ✅ GRID COMPACT + SKELETON */}
         {step === 2 && selectedService && (
           <div className="bg-white rounded-2xl shadow-sm p-8">
             <button
               onClick={() => {
                 setStep(1)
                 setSelectedService(null)
+                setDaysToShow(7)
               }}
               className="flex items-center text-gray-600 hover:text-gray-900 mb-6 transition-colors"
             >
@@ -304,40 +297,83 @@ export default function ReservationPage() {
 
             <h2 className="text-2xl font-light text-gray-900 mb-6">Choisissez un créneau</h2>
             
-            {timeSlots.length === 0 ? (
-              <div className="text-center py-12">
-                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-                <p className="text-gray-600">Aucun créneau disponible pour le moment.</p>
-                <p className="text-sm text-gray-500 mt-2">Veuillez réessayer ultérieurement.</p>
-              </div>
-            ) : (
-              <div className="space-y-8">
-                {Object.entries(groupSlotsByDate(timeSlots)).map(([date, slots]) => (
-                  <div key={date}>
-                    <h3 className="font-light text-gray-900 mb-4 flex items-center text-lg">
-                      <Calendar className="h-5 w-5 mr-3 text-gray-600" />
-                      {new Date(date).toLocaleDateString('fr-FR', { 
-                        weekday: 'long', 
-                        day: 'numeric', 
-                        month: 'long',
-                        year: 'numeric'
-                      })}
-                    </h3>
-                    <div className="grid grid-cols-3 md:grid-cols-5 gap-3">
-                      {slots.map((slot) => (
-                        <button
-                          key={slot.id}
-                          onClick={() => handleTimeSlotSelect(slot)}
-                          className="p-4 border-2 border-gray-200 rounded-xl hover:border-gray-900 hover:bg-gray-50 transition-all duration-200 text-center group"
-                        >
-                          <Clock className="h-4 w-4 mx-auto mb-2 text-gray-400 group-hover:text-gray-900 transition-colors" />
-                          <span className="text-sm font-light">{slot.startTime}</span>
-                        </button>
+            {/* ⭐ SKELETON LOADER */}
+            {loadingSlots ? (
+              <div className="space-y-8 animate-pulse">
+                {[1, 2, 3].map((i) => (
+                  <div key={i}>
+                    <div className="h-6 bg-gray-200 rounded w-64 mb-4"></div>
+                    <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2">
+                      {[...Array(10)].map((_, idx) => (
+                        <div key={idx} className="h-16 bg-gray-100 rounded-xl"></div>
                       ))}
                     </div>
                   </div>
                 ))}
+                <div className="text-center py-8">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                  <p className="text-gray-600 mt-4">Chargement des créneaux disponibles...</p>
+                </div>
               </div>
+            ) : timeSlots.length === 0 ? (
+              <div className="text-center py-12">
+                <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-700 font-medium">Aucun créneau disponible pour le moment.</p>
+                <p className="text-sm text-gray-600 mt-2">Veuillez réessayer ultérieurement.</p>
+              </div>
+            ) : (
+              <>
+                <div className="space-y-8">
+                  {Object.entries(groupSlotsByDate(timeSlots))
+                    .slice(0, daysToShow)
+                    .map(([date, slots]) => (
+                    <div key={date}>
+                      <h3 className="font-medium text-gray-900 mb-4 flex items-center text-lg">
+                        <Calendar className="h-5 w-5 mr-3 text-gray-700" />
+                        {new Date(date).toLocaleDateString('fr-FR', { 
+                          weekday: 'long', 
+                          day: 'numeric', 
+                          month: 'long',
+                          year: 'numeric'
+                        })}
+                      </h3>
+                      {/* ⭐ GRID COMPACT 10 COLONNES */}
+                      <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2">
+                        {slots.map((slot) => (
+                          <button
+                            key={slot.id}
+                            onClick={() => handleTimeSlotSelect(slot)}
+                            className="p-3 border-2 border-gray-200 rounded-lg hover:border-gray-900 hover:bg-gray-50 transition-all duration-200 text-center group"
+                          >
+                            <span className="text-xs font-medium text-gray-900 block">
+                              {slot.startTime.slice(0, 5)}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Bouton "Afficher plus de disponibilités" */}
+                {daysToShow < Object.keys(groupSlotsByDate(timeSlots)).length && (
+                  <div className="mt-8">
+                    <button
+                      onClick={loadMoreDays}
+                      className="w-full p-6 bg-gray-50 hover:bg-gray-100 rounded-xl border-2 border-gray-200 hover:border-gray-300 transition-all duration-200 group"
+                    >
+                      <div className="flex items-center justify-center gap-3 text-gray-900">
+                        <ChevronDown className="h-5 w-5 group-hover:translate-y-1 transition-transform" />
+                        <span className="font-medium">Afficher plus de disponibilités</span>
+                        <ChevronDown className="h-5 w-5 group-hover:translate-y-1 transition-transform" />
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2">
+                        {Object.keys(groupSlotsByDate(timeSlots)).length - daysToShow} jours restants
+                      </p>
+                    </button>
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -392,7 +428,7 @@ export default function ReservationPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <Clock className="w-5 h-5 text-gray-600" />
-                  <p className="text-lg font-light text-gray-900">{selectedTimeSlot.startTime}</p>
+                  <p className="text-lg font-light text-gray-900">{selectedTimeSlot.startTime.slice(0, 5)}</p>
                 </div>
               </div>
               
@@ -433,31 +469,6 @@ export default function ReservationPage() {
             </p>
           </div>
         )}
-
-        {/* 🎬 ANIMATION TRANSITION VIDÉO */}
-        {/* 🎬 ANIMATION TRANSITION VIDÉO PLEIN ÉCRAN */}
-{showAnimation && animationType && (
-  <div className="fixed inset-0 z-50 bg-black">
-    <video
-      key={animationType}
-      autoPlay
-      muted
-      playsInline
-      onEnded={handleVideoEnd}
-      className="w-full h-full object-cover"
-    >
-      <source src={`/videos/${animationType}-animation.mp4`} type="video/mp4" />
-      <source src={`/videos/${animationType}-animation.webm`} type="video/webm" />
-    </video>
-    
-    {/* Texte par-dessus la vidéo */}
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-      <p className="text-4xl md:text-5xl font-light text-white animate-pulse drop-shadow-2xl">
-        {CATEGORY_MESSAGES[animationType]}
-      </p>
-    </div>
-  </div>
-)}
       </div>
     </div>
   )

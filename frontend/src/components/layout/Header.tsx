@@ -17,8 +17,7 @@ const Header = () => {
     '/reserver',
     '/booking',
     '/mes-reservations',
-    '/contact',
-    '/prestations'
+    
   ].some(path => pathname?.startsWith(path))
 
   // Détection du scroll

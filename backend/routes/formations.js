@@ -1,15 +1,35 @@
 const express = require('express');
 const router = express.Router();
 const formationController = require('../controllers/formationController');
+const adminController = require('../controllers/adminController');
 
-// Routes publiques
+// ============================================
+// ROUTES PUBLIQUES
+// ============================================
+
+// Récupérer toutes les formations actives
 router.get('/', formationController.getAllFormations);
-router.get('/category/:category', formationController.getFormationsByCategory);  // ✅ NOUVELLE ROUTE
+
+// Récupérer les formations par catégorie (ancien système)
+router.get('/category/:category', formationController.getFormationsByCategory);
+
+// 🆕 Récupérer les formations par sous-catégorie (nouveau système)
+router.get('/subcategory/:subcategory', formationController.getFormationsBySubcategory);
+
+// Récupérer une formation par ID
 router.get('/:id', formationController.getFormationById);
 
-// Routes admin (à protéger plus tard avec middleware auth)
-router.post('/', formationController.createFormation);
-router.put('/:id', formationController.updateFormation);
-router.delete('/:id', formationController.deleteFormation);
+// ============================================
+// ROUTES ADMIN (protégées)
+// ============================================
+
+// Créer une formation
+router.post('/', adminController.authMiddleware, formationController.createFormation);
+
+// Mettre à jour une formation
+router.put('/:id', adminController.authMiddleware, formationController.updateFormation);
+
+// Supprimer une formation
+router.delete('/:id', adminController.authMiddleware, formationController.deleteFormation);
 
 module.exports = router;

@@ -73,7 +73,7 @@ app.get('/api/models', (req, res) => {
 app.use('/api/services', require('./routes/services'));
 app.use('/api/formations', require('./routes/formations'));
 app.use('/api/contact', require('./routes/contact'));
-
+app.use('/api/inscriptions', require('./routes/inscription'));
 // ✅ Routes authentification avec rate limiter spécifique
 app.use('/api/auth', authLimiter, require('./routes/auth'));
 

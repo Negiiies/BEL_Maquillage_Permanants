@@ -1,5 +1,5 @@
 // backend/controllers/timeslotController.js - VERSION COMPLÈTE AMÉLIORÉE
-const { TimeSlot, Service, Booking, sequelize } = require('../models');
+const { TimeSlot, Service, Booking, Client, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
 // Fonction helper pour calculer la durée selon le service

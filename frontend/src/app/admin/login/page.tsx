@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, LogIn } from 'lucide-react'
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react'
 
 export default function AdminLogin() {
   const [formData, setFormData] = useState({
@@ -34,7 +34,7 @@ export default function AdminLogin() {
         localStorage.setItem('adminToken', data.data.token)
         router.push('/admin')
       } else {
-        setError(data.message || 'Erreur de connexion')
+        setError(data.message || 'Identifiants incorrects')
       }
     } catch (error) {
       console.error('Erreur connexion:', error)
@@ -52,80 +52,119 @@ export default function AdminLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-violet-900 flex items-center justify-center p-4">
-      <div className="max-w-md w-full">
-        <div className="text-center mb-8">
-          <div className="mx-auto h-12 w-12 bg-white rounded-xl flex items-center justify-center mb-4">
-            <LogIn className="h-6 w-6 text-gray-900" />
+    <div className="min-h-screen bg-[#FAF7F2] flex items-center justify-center px-8 font-serif">
+      <div className="w-full max-w-md">
+        
+        {/* Header */}
+        <div className="text-center mb-12">
+          <div className="w-16 h-16 bg-neutral-900 flex items-center justify-center mx-auto mb-6">
+            <Lock className="w-8 h-8 text-white" strokeWidth={1.5} />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">BEL Admin</h1>
-          <p className="text-gray-300">Connexion à l'espace administrateur</p>
+          <h1 className="text-4xl font-light text-neutral-900 mb-2">
+            BEL Admin
+          </h1>
+          <p className="text-neutral-600 font-light">
+            Espace administrateur sécurisé
+          </p>
         </div>
 
-        <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 shadow-xl">
+        {/* Formulaire */}
+        <div className="bg-white border-2 border-neutral-900 p-8">
+          
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
-              <div className="bg-red-500/20 border border-red-500/30 rounded-lg p-3">
-                <p className="text-red-200 text-sm">{error}</p>
-              </div>
-            )}
-
+            
+            {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm uppercase tracking-[0.2em] text-neutral-700 mb-3 font-medium">
                 Email administrateur
               </label>
-              <input
-                type="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                required
-                className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500"
-                placeholder="admin@bel-institut.fr"
-              />
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Mail className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />
+                </div>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  autoComplete="email"
+                  className="w-full pl-12 pr-4 py-4 border border-neutral-300 focus:border-neutral-900 focus:outline-none transition-colors font-light"
+                  placeholder="admin@bel-institut.fr"
+                  required
+                />
+              </div>
             </div>
 
+            {/* Mot de passe */}
             <div>
-              <label className="block text-sm font-medium text-white mb-2">
+              <label className="block text-sm uppercase tracking-[0.2em] text-neutral-700 mb-3 font-medium">
                 Mot de passe
               </label>
               <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                  <Lock className="h-5 w-5 text-neutral-400" strokeWidth={1.5} />
+                </div>
                 <input
                   type={showPassword ? 'text' : 'password'}
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
+                  autoComplete="current-password"
+                  className="w-full pl-12 pr-12 py-4 border border-neutral-300 focus:border-neutral-900 focus:outline-none transition-colors font-light"
+                  placeholder="••••••••••••"
                   required
-                  className="w-full px-4 py-3 bg-white/20 border border-white/30 rounded-lg text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 pr-12"
-                  placeholder="••••••••"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-300 hover:text-white"
+                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-neutral-400 hover:text-neutral-900 transition-colors"
                 >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
+                  {showPassword ? (
+                    <EyeOff className="h-5 w-5" strokeWidth={1.5} />
+                  ) : (
+                    <Eye className="h-5 w-5" strokeWidth={1.5} />
+                  )}
                 </button>
               </div>
             </div>
 
+            {/* Message d'erreur */}
+            {error && (
+              <div className="border-l-2 border-red-600 pl-4 py-3 bg-red-50">
+                <p className="text-sm text-red-600 font-light">{error}</p>
+              </div>
+            )}
+
+            {/* Bouton */}
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-gradient-to-r from-purple-600 to-violet-600 hover:from-purple-700 hover:to-violet-700 disabled:opacity-50 text-white font-medium py-3 px-4 rounded-lg"
+              className="w-full py-4 bg-neutral-900 text-white hover:bg-neutral-800 disabled:bg-neutral-400 transition-colors text-sm uppercase tracking-[0.2em] font-medium"
             >
               {loading ? 'Connexion...' : 'Se connecter'}
             </button>
+
           </form>
 
-          <div className="mt-6 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-            <p className="text-blue-200 text-xs">
-              <strong>Compte de test :</strong><br />
-              Email: admin@bel-institut.fr<br />
-              Mot de passe: admin123456
-            </p>
+          {/* Note de sécurité */}
+          <div className="mt-8 pt-8 border-t border-neutral-200">
+            <div className="flex items-start gap-3">
+              <Lock className="w-4 h-4 text-neutral-400 mt-1 flex-shrink-0" strokeWidth={1.5} />
+              <p className="text-xs text-neutral-500 font-light leading-relaxed">
+                Connexion sécurisée par chiffrement. Vos identifiants sont protégés et jamais stockés en clair.
+              </p>
+            </div>
           </div>
+
         </div>
+
+        {/* Footer sécurité */}
+        <div className="mt-8 text-center">
+          <p className="text-xs text-neutral-500 font-light">
+            Accès réservé aux administrateurs BEL Institut
+          </p>
+        </div>
+
       </div>
     </div>
   )

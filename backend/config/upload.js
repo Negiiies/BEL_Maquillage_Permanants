@@ -2,24 +2,43 @@ const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Créer le dossier uploads s'il n'existe pas
-const uploadDir = path.join(__dirname, '../public/uploads/services');
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
+// ⭐ STORAGE POUR SERVICES
+const serviceUploadDir = path.join(__dirname, '../public/uploads/services');
+if (!fs.existsSync(serviceUploadDir)) {
+  fs.mkdirSync(serviceUploadDir, { recursive: true });
 }
 
-// Configuration du stockage
-const storage = multer.diskStorage({
+const serviceStorage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, uploadDir);
+    cb(null, serviceUploadDir);
   },
   filename: (req, file, cb) => {
-    // Générer un nom unique : timestamp + nom original sécurisé
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
     const ext = path.extname(file.originalname);
     const nameWithoutExt = path.basename(file.originalname, ext)
       .toLowerCase()
-      .replace(/[^a-z0-9]/g, '-'); // Remplacer caractères spéciaux par -
+      .replace(/[^a-z0-9]/g, '-');
+    
+    cb(null, nameWithoutExt + '-' + uniqueSuffix + ext);
+  }
+});
+
+// ⭐ STORAGE POUR FORMATIONS
+const formationUploadDir = path.join(__dirname, '../public/uploads/formations');
+if (!fs.existsSync(formationUploadDir)) {
+  fs.mkdirSync(formationUploadDir, { recursive: true });
+}
+
+const formationStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, formationUploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    const nameWithoutExt = path.basename(file.originalname, ext)
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, '-');
     
     cb(null, nameWithoutExt + '-' + uniqueSuffix + ext);
   }
@@ -38,13 +57,25 @@ const fileFilter = (req, file, cb) => {
   }
 };
 
-// Configuration de multer
-const upload = multer({
-  storage: storage,
+// ⭐ CONFIGURATION MULTER POUR SERVICES
+const uploadService = multer({
+  storage: serviceStorage,
   fileFilter: fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024 // Limite de 5MB
+    fileSize: 5 * 1024 * 1024 // 5MB
   }
 });
 
-module.exports = upload;
+// ⭐ CONFIGURATION MULTER POUR FORMATIONS
+const uploadFormation = multer({
+  storage: formationStorage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
+});
+
+module.exports = {
+  uploadService,
+  uploadFormation
+};
