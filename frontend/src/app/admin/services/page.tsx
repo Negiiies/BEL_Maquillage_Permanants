@@ -60,6 +60,8 @@ export default function AdminServices() {
     sortOrder: '0',
     imageUrl: ''
   })
+  const [customDuration, setCustomDuration] = useState('')
+  const [showCustomDuration, setShowCustomDuration] = useState(false)
   const [formLoading, setFormLoading] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState('')
@@ -96,15 +98,38 @@ export default function AdminServices() {
   const openModal = (service?: Service) => {
     if (service) {
       setEditingService(service)
-      setFormData({
-        name: service.name,
-        description: service.description,
-        price: service.price.toString(),
-        duration: service.duration.toString(),
-        category: service.category,
-        sortOrder: service.sortOrder.toString(),
-        imageUrl: service.imageUrl || ''
-      })
+      
+      // Vérifier si la durée fait partie des options prédéfinies
+      const predefinedDurations = ['15', '30', '45', '60', '90', '120', '150', '180']
+      const durationStr = service.duration.toString()
+      
+      if (predefinedDurations.includes(durationStr)) {
+        // Durée standard
+        setFormData({
+          name: service.name,
+          description: service.description,
+          price: service.price.toString(),
+          duration: durationStr,
+          category: service.category,
+          sortOrder: service.sortOrder.toString(),
+          imageUrl: service.imageUrl || ''
+        })
+        setShowCustomDuration(false)
+        setCustomDuration('')
+      } else {
+        // Durée personnalisée
+        setFormData({
+          name: service.name,
+          description: service.description,
+          price: service.price.toString(),
+          duration: 'custom',
+          category: service.category,
+          sortOrder: service.sortOrder.toString(),
+          imageUrl: service.imageUrl || ''
+        })
+        setShowCustomDuration(true)
+        setCustomDuration(durationStr)
+      }
     } else {
       setEditingService(null)
       setFormData({
@@ -116,6 +141,8 @@ export default function AdminServices() {
         sortOrder: '0',
         imageUrl: ''
       })
+      setShowCustomDuration(false)
+      setCustomDuration('')
     }
     setShowModal(true)
   }
@@ -133,6 +160,8 @@ export default function AdminServices() {
       sortOrder: '0',
       imageUrl: ''
     })
+    setShowCustomDuration(false)
+    setCustomDuration('')
     setUploading(false)
     setUploadError('')
   }
@@ -174,7 +203,6 @@ export default function AdminServices() {
       const data = await response.json()
 
       if (response.ok) {
-        // Stocker l'URL de l'image dans le formulaire
         setFormData({ ...formData, imageUrl: data.data.imageUrl })
         setUploadError('')
       } else {
@@ -206,32 +234,54 @@ export default function AdminServices() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-          price: parseFloat(formData.price),
-          duration: parseInt(formData.duration),
-          category: formData.category,
-          sortOrder: parseInt(formData.sortOrder),
-          imageUrl: formData.imageUrl || null
+          ...formData,
+          duration: showCustomDuration ? customDuration : formData.duration
         })
       })
 
+      const data = await response.json()
+
       if (response.ok) {
-        await fetchServices()
+        alert(data.message)
         closeModal()
+        fetchServices()
       } else {
-        const errorData = await response.json()
-        alert(errorData.message || 'Erreur lors de la sauvegarde')
+        alert(data.message || 'Erreur')
       }
     } catch (error) {
-      console.error('Erreur sauvegarde:', error)
+      console.error('Erreur:', error)
       alert('Erreur de connexion')
     } finally {
       setFormLoading(false)
     }
   }
 
-  // Basculer l'état actif/inactif
+  // Supprimer un service
+  const handleDelete = async (id: number) => {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce service ?')) return
+
+    try {
+      const token = localStorage.getItem('adminToken')
+      const response = await fetch(`http://localhost:5000/api/admin/services/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+
+      const data = await response.json()
+      
+      if (response.ok) {
+        alert(data.message)
+        fetchServices()
+      } else {
+        alert(data.message)
+      }
+    } catch (error) {
+      console.error('Erreur:', error)
+      alert('Erreur de connexion')
+    }
+  }
+
+  // Toggle active/inactive
   const toggleActive = async (service: Service) => {
     try {
       const token = localStorage.getItem('adminToken')
@@ -242,47 +292,20 @@ export default function AdminServices() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
+          ...service,
           isActive: !service.isActive
         })
       })
 
       if (response.ok) {
-        await fetchServices()
-      } else {
-        const errorData = await response.json()
-        alert(errorData.message || 'Erreur lors de la mise à jour')
+        fetchServices()
       }
     } catch (error) {
-      console.error('Erreur toggle active:', error)
-      alert('Erreur de connexion')
+      console.error('Erreur:', error)
     }
   }
 
-  // Supprimer un service
-  const deleteService = async (service: Service) => {
-    if (!confirm(`Êtes-vous sûr de vouloir supprimer "${service.name}" ?`)) {
-      return
-    }
-
-    try {
-      const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:5000/api/admin/services/${service.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
-
-      if (response.ok) {
-        await fetchServices()
-      } else {
-        const errorData = await response.json()
-        alert(errorData.message || 'Erreur lors de la suppression')
-      }
-    } catch (error) {
-      console.error('Erreur suppression:', error)
-      alert('Erreur de connexion')
-    }
-  }
-
+  // Helper pour formater le nom de catégorie
   const getCategoryLabel = (category: string) => {
     const cat = categories.find(c => c.value === category)
     return cat ? cat.label : category
@@ -323,13 +346,13 @@ export default function AdminServices() {
               placeholder="Rechercher un service..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
             />
           </div>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
           >
             <option value="">Toutes les catégories</option>
             {categories.map(cat => (
@@ -340,110 +363,97 @@ export default function AdminServices() {
       </div>
 
       {/* Liste des services */}
-      <div className="bg-white shadow rounded-lg overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Service
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Catégorie
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Prix
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Durée
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Réservations
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Statut
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {filteredServices.map((service) => (
-                <tr key={service.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900">
-                        {service.name}
-                      </div>
-                      <div className="text-sm text-gray-500 max-w-xs truncate">
-                        {service.description}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {getCategoryLabel(service.category)}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {service.price}€
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {service.duration} min
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {service.totalBookings || 0}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <button
-                      onClick={() => toggleActive(service)}
-                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                        service.isActive
-                          ? 'bg-green-100 text-green-800'
-                          : 'bg-red-100 text-red-800'
-                      }`}
-                    >
-                      {service.isActive ? (
-                        <>
-                          <Eye className="h-3 w-3 mr-1" />
-                          Actif
-                        </>
-                      ) : (
-                        <>
-                          <EyeOff className="h-3 w-3 mr-1" />
-                          Inactif
-                        </>
-                      )}
-                    </button>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex justify-end space-x-2">
-                      <button
-                        onClick={() => openModal(service)}
-                        className="text-blue-600 hover:text-blue-900"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => deleteService(service)}
-                        className="text-red-600 hover:text-red-900"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredServices.map(service => (
+          <div key={service.id} className="bg-white rounded-lg shadow-md overflow-hidden">
+            {/* Image */}
+            {service.imageUrl && (
+              <div className="h-48 bg-gray-200">
+                <img 
+                  src={`http://localhost:5000${service.imageUrl}`}
+                  alt={service.name}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            
+            {/* Contenu */}
+            <div className="p-4">
+              <div className="flex justify-between items-start mb-2">
+                <h3 className="text-lg font-semibold text-gray-900">{service.name}</h3>
+                <span className="text-sm text-gray-500">{getCategoryLabel(service.category)}</span>
+              </div>
+              
+              <p className="text-gray-600 text-sm mb-3 line-clamp-2">{service.description}</p>
+              
+              <div className="flex justify-between items-center mb-3">
+                <span className="text-xl font-bold text-blue-600">{service.price}€</span>
+                <span className="text-sm text-gray-500">
+                  {service.duration >= 60 
+                    ? `${Math.floor(service.duration / 60)}h${service.duration % 60 > 0 ? (service.duration % 60).toString().padStart(2, '0') : ''}`
+                    : `${service.duration} min`
+                  }
+                </span>
+              </div>
+
+              {/* Status */}
+              <div className="flex items-center justify-between mb-3">
+                <span className={`px-2 py-1 rounded text-xs font-medium ${
+                  service.isActive 
+                    ? 'bg-green-100 text-green-800' 
+                    : 'bg-gray-100 text-gray-800'
+                }`}>
+                  {service.isActive ? 'Actif' : 'Inactif'}
+                </span>
+                {service.totalBookings && (
+                  <span className="text-xs text-gray-500">
+                    {service.totalBookings} réservation(s)
+                  </span>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toggleActive(service)}
+                  className="flex-1 px-3 py-2 text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg flex items-center justify-center"
+                >
+                  {service.isActive ? <EyeOff className="h-4 w-4 mr-1" /> : <Eye className="h-4 w-4 mr-1" />}
+                  {service.isActive ? 'Masquer' : 'Afficher'}
+                </button>
+                <button
+                  onClick={() => openModal(service)}
+                  className="flex-1 px-3 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg flex items-center justify-center"
+                >
+                  <Edit className="h-4 w-4 mr-1" />
+                  Modifier
+                </button>
+                <button
+                  onClick={() => handleDelete(service.id)}
+                  className="px-3 py-2 text-sm bg-red-600 hover:bg-red-700 text-white rounded-lg"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* Modal Ajout/Édition */}
+      {/* Message si aucun service */}
+      {filteredServices.length === 0 && (
+        <div className="text-center py-12 bg-white rounded-lg shadow">
+          <Sparkles className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+          <p className="text-gray-600">Aucun service trouvé</p>
+        </div>
+      )}
+
+      {/* Modal Ajouter/Modifier */}
       {showModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-full max-w-md shadow-lg rounded-md bg-white">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-6 border-b">
+              <h3 className="text-xl font-bold text-gray-900">
                 {editingService ? 'Modifier le service' : 'Nouveau service'}
               </h3>
               <button
@@ -454,7 +464,7 @@ export default function AdminServices() {
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4 p-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Nom du service *
@@ -464,7 +474,7 @@ export default function AdminServices() {
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 />
               </div>
 
@@ -476,7 +486,7 @@ export default function AdminServices() {
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 />
               </div>
 
@@ -491,20 +501,69 @@ export default function AdminServices() {
                     value={formData.price}
                     onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Durée (min) *
+                    Durée *
                   </label>
-                  <input
-                    type="number"
-                    value={formData.duration}
-                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
-                  />
+                  
+                  {showCustomDuration ? (
+                    <div className="space-y-2">
+                      <input
+                        type="number"
+                        min="1"
+                        max="300"
+                        value={customDuration}
+                        onChange={(e) => setCustomDuration(e.target.value)}
+                        placeholder="Durée en minutes (ex: 40, 75, 105...)"
+                        required
+                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                        autoFocus
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCustomDuration(false)
+                          setCustomDuration('')
+                          setFormData({ ...formData, duration: '60' })
+                        }}
+                        className="text-sm text-blue-600 hover:text-blue-800 hover:underline flex items-center"
+                      >
+                        ← Retour aux durées prédéfinies
+                      </button>
+                    </div>
+                  ) : (
+                    <select
+                      value={formData.duration}
+                      onChange={(e) => {
+                        if (e.target.value === 'custom') {
+                          setShowCustomDuration(true)
+                          setFormData({ ...formData, duration: 'custom' })
+                        } else {
+                          setFormData({ ...formData, duration: e.target.value })
+                        }
+                      }}
+                      required
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                    >
+                      <option value="">-- Choisir une durée --</option>
+                      <option value="15">15 min</option>
+                      <option value="30">30 min</option>
+                      <option value="45">45 min</option>
+                      <option value="60">1h</option>
+                      <option value="90">1h30</option>
+                      <option value="120">2h</option>
+                      <option value="150">2h30</option>
+                      <option value="180">3h</option>
+                      <option value="custom">✏️ Autre durée personnalisée...</option>
+                    </select>
+                  )}
+                  
+                  <p className="text-xs text-gray-500 mt-1">
+                    💡 Choisissez une durée standard ou créez une durée personnalisée
+                  </p>
                 </div>
               </div>
 
@@ -516,7 +575,7 @@ export default function AdminServices() {
                   value={formData.category}
                   onChange={(e) => setFormData({ ...formData, category: e.target.value })}
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                 >
                   {categories.map(cat => (
                     <option key={cat.value} value={cat.value}>{cat.label}</option>
@@ -524,101 +583,57 @@ export default function AdminServices() {
                 </select>
               </div>
 
-              {/* ✅ NOUVEAU SYSTÈME D'UPLOAD */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Image de la prestation (optionnelle)
+                  Ordre d'affichage
                 </label>
-                
-                {/* Input file caché */}
+                <input
+                  type="number"
+                  value={formData.sortOrder}
+                  onChange={(e) => setFormData({ ...formData, sortOrder: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Image du service
+                </label>
                 <input
                   type="file"
-                  id="imageUpload"
-                  accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                  accept="image/*"
                   onChange={handleImageUpload}
-                  className="hidden"
-                />
-                
-                {/* Bouton pour déclencher l'upload */}
-                <button
-                  type="button"
-                  onClick={() => document.getElementById('imageUpload')?.click()}
                   disabled={uploading}
-                  className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg hover:border-blue-500 transition-colors flex items-center justify-center gap-2 text-gray-600 hover:text-blue-600"
-                >
-                  {uploading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      <span>Upload en cours...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                      </svg>
-                      <span>Choisir une image</span>
-                    </>
-                  )}
-                </button>
-                
-                <p className="text-xs text-gray-500 mt-1">
-                  Formats acceptés : JPG, PNG, GIF, WEBP (max 5MB)
-                </p>
-                
-                {/* Aperçu de l'image */}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                />
+                {uploading && <p className="text-sm text-blue-600 mt-1">Upload en cours...</p>}
+                {uploadError && <p className="text-sm text-red-600 mt-1">{uploadError}</p>}
                 {formData.imageUrl && (
-                  <div className="mt-3 relative">
-                    <p className="text-xs text-gray-600 mb-2">Aperçu :</p>
-                    <div className="relative group">
-                      <img 
-                        src={`${API_URL}${formData.imageUrl}`}
-                        alt="Aperçu" 
-                        className="w-full h-48 object-cover rounded-lg border-2 border-gray-200"
-                        onError={(e) => {
-                          e.currentTarget.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50%25" y="50%25" text-anchor="middle" fill="%23999"%3EImage invalide%3C/text%3E%3C/svg%3E'
-                        }}
-                      />
-                      
-                      {/* Bouton supprimer l'image */}
-                      <button
-                        type="button"
-                        onClick={() => setFormData({ ...formData, imageUrl: '' })}
-                        className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-700"
-                        title="Supprimer l'image"
-                      >
-                        <X className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
-                {/* Message d'erreur upload */}
-                {uploadError && (
-                  <div className="mt-2 text-sm text-red-600 bg-red-50 p-2 rounded">
-                    {uploadError}
+                  <div className="mt-2">
+                    <img 
+                      src={`http://localhost:5000${formData.imageUrl}`}
+                      alt="Preview"
+                      className="h-32 w-32 object-cover rounded"
+                    />
                   </div>
                 )}
               </div>
 
-              <div className="flex justify-end space-x-3 pt-4">
+              <div className="flex gap-3 pt-4 border-t">
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-md"
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
                 >
                   Annuler
                 </button>
                 <button
                   type="submit"
                   disabled={formLoading}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 rounded-md flex items-center"
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 flex items-center justify-center"
                 >
-                  {formLoading ? (
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  ) : (
-                    <Save className="h-4 w-4 mr-2" />
-                  )}
-                  {editingService ? 'Modifier' : 'Créer'}
+                  <Save className="h-4 w-4 mr-2" />
+                  {formLoading ? 'Enregistrement...' : 'Enregistrer'}
                 </button>
               </div>
             </form>

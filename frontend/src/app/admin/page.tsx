@@ -61,35 +61,51 @@ export default function AdminDashboard() {
     const fetchData = async () => {
       const token = localStorage.getItem('adminToken')
       
+      if (!token) {
+        window.location.href = '/admin/login'
+        return
+      }
+      
       try {
         // Récupérer les statistiques générales
         const statsRes = await fetch('http://localhost:5000/api/admin/dashboard', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
-        const statsData = await statsRes.json()
-        if (statsData.success) {
-          setStats(statsData.data)
+        
+        if (statsRes.ok) {
+          const statsData = await statsRes.json()
+          if (statsData.success) {
+            setStats(statsData.data)
+          }
         }
 
         // Récupérer les statistiques de réservations
         const bookingStatsRes = await fetch('http://localhost:5000/api/bookings/stats', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
-        const bookingStatsData = await bookingStatsRes.json()
-        if (bookingStatsData.success) {
-          setBookingStats(bookingStatsData.data)
+        
+        if (bookingStatsRes.ok) {
+          const bookingStatsData = await bookingStatsRes.json()
+          if (bookingStatsData.success) {
+            setBookingStats(bookingStatsData.data)
+          }
         }
 
         // Récupérer les réservations récentes
         const bookingsRes = await fetch('http://localhost:5000/api/bookings?limit=5', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
-        const bookingsData = await bookingsRes.json()
-        if (bookingsData.success) {
-          setRecentBookings(bookingsData.data)
+        
+        if (bookingsRes.ok) {
+          const bookingsData = await bookingsRes.json()
+          if (bookingsData.success) {
+            // ✅ Protection : toujours un tableau
+            setRecentBookings(Array.isArray(bookingsData.data) ? bookingsData.data : [])
+          }
         }
       } catch (error) {
         console.error('Erreur chargement dashboard:', error)
+        setRecentBookings([])
       } finally {
         setLoading(false)
       }
@@ -116,8 +132,8 @@ export default function AdminDashboard() {
     }
 
     return (
-      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles]}`}>
-        {labels[status as keyof typeof labels]}
+      <span className={`px-2 py-1 rounded-full text-xs font-medium ${styles[status as keyof typeof styles] || 'bg-gray-100 text-gray-800'}`}>
+        {labels[status as keyof typeof labels] || status}
       </span>
     )
   }
@@ -154,8 +170,8 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium opacity-90">Réservations</p>
-            <p className="text-3xl font-bold">{bookingStats?.total || 0}</p>
-            <p className="text-xs opacity-75">Ce mois: {bookingStats?.thisMonth || 0}</p>
+            <p className="text-3xl font-bold">{bookingStats?.total ?? 0}</p>
+            <p className="text-xs opacity-75">Ce mois: {bookingStats?.thisMonth ?? 0}</p>
           </div>
         </div>
 
@@ -169,7 +185,7 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium opacity-90">En attente</p>
-            <p className="text-3xl font-bold">{bookingStats?.pending || 0}</p>
+            <p className="text-3xl font-bold">{bookingStats?.pending ?? 0}</p>
             <p className="text-xs opacity-75">À confirmer</p>
           </div>
         </div>
@@ -184,7 +200,7 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium opacity-90">Messages</p>
-            <p className="text-3xl font-bold">{stats?.contacts.unread || 0}</p>
+            <p className="text-3xl font-bold">{stats?.contacts?.unread ?? 0}</p>
             <p className="text-xs opacity-75">Non lus</p>
           </div>
         </div>
@@ -199,8 +215,8 @@ export default function AdminDashboard() {
           </div>
           <div className="space-y-1">
             <p className="text-sm font-medium opacity-90">Revenus du mois</p>
-            <p className="text-3xl font-bold">{bookingStats?.monthlyRevenue.toFixed(0) || 0}€</p>
-            <p className="text-xs opacity-75">{bookingStats?.completed || 0} prestations</p>
+            <p className="text-3xl font-bold">{bookingStats?.monthlyRevenue?.toFixed(0) ?? 0}€</p>
+            <p className="text-xs opacity-75">{bookingStats?.completed ?? 0} prestations</p>
           </div>
         </div>
       </div>
@@ -242,7 +258,7 @@ export default function AdminDashboard() {
               <ArrowRight className="h-5 w-5 text-gray-400 group-hover:text-green-600 transition-colors" />
             </div>
             <h3 className="font-semibold text-gray-900 mb-2">Messages clients</h3>
-            <p className="text-sm text-gray-600">{stats?.contacts.unread || 0} message(s) non lu(s)</p>
+            <p className="text-sm text-gray-600">{stats?.contacts?.unread ?? 0} message(s) non lu(s)</p>
           </div>
         </Link>
       </div>
@@ -271,10 +287,10 @@ export default function AdminDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">
-                      {booking.client.firstName} {booking.client.lastName}
+                      {booking.client?.firstName} {booking.client?.lastName}
                     </p>
                     <p className="text-sm text-gray-600 truncate">
-                      {booking.service.name}
+                      {booking.service?.name}
                     </p>
                   </div>
                 </div>
@@ -282,10 +298,10 @@ export default function AdminDashboard() {
                 <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <p className="text-sm font-medium text-gray-900">
-                      {new Date(booking.timeSlot.date).toLocaleDateString('fr-FR')}
+                      {new Date(booking.timeSlot?.date).toLocaleDateString('fr-FR')}
                     </p>
                     <p className="text-xs text-gray-600">
-                      {booking.timeSlot.startTime}
+                      {booking.timeSlot?.startTime}
                     </p>
                   </div>
                   
@@ -294,7 +310,7 @@ export default function AdminDashboard() {
                   </div>
 
                   <p className="font-semibold text-gray-900 min-w-[60px] text-right">
-                    {booking.service.price}€
+                    {booking.service?.price}€
                   </p>
                 </div>
               </div>

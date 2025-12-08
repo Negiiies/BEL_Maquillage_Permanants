@@ -7,8 +7,8 @@ require('dotenv').config();
 // Importer la base de données
 const db = require('./models');
 
-// ✅ NOUVEAU : Importer les rate limiters
-const { uploadLimiter, authLimiter, apiLimiter } = require('./middlewares/rateLimiter');
+// ✅ Importer les rate limiters
+const { uploadLimiter, authLimiter } = require('./middlewares/rateLimiter');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -25,9 +25,6 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// ✅ Rate limiter général sur toutes les routes API
-app.use('/api/', apiLimiter);
 
 // Servir les fichiers statiques (images uploadées)
 app.use('/uploads', express.static(path.join(__dirname, 'public/uploads')));
@@ -69,20 +66,31 @@ app.get('/api/models', (req, res) => {
   });
 });
 
-// Routes API publiques
+// ========================================
+// ROUTES API PUBLIQUES (sans rate limiting)
+// ========================================
 app.use('/api/services', require('./routes/services'));
 app.use('/api/formations', require('./routes/formations'));
-app.use('/api/contact', require('./routes/contact'));
 app.use('/api/inscriptions', require('./routes/inscription'));
-// ✅ Routes authentification avec rate limiter spécifique
-app.use('/api/auth', authLimiter, require('./routes/auth'));
-
-// Routes admin et autres
-app.use('/api/admin', require('./routes/admin'));
 app.use('/api/timeslots', require('./routes/timeslots'));
 app.use('/api/bookings', require('./routes/bookings'));
 
-// ✅ Routes d'upload avec rate limiter spécifique (protégées par authentification admin)
+// ========================================
+// ROUTES AVEC RATE LIMITING SPÉCIFIQUE
+// ========================================
+
+// ✅ Routes authentification (rate limiting géré dans auth.js)
+app.use('/api/auth', require('./routes/auth'));
+
+// ✅ Routes contact avec rate limiter (max 5 messages/15min)
+app.use('/api/contact', authLimiter, require('./routes/contact'));
+
+// ========================================
+// ROUTES ADMIN (sans rate limiting global)
+// ========================================
+app.use('/api/admin', require('./routes/admin'));
+
+// ✅ Routes d'upload avec rate limiter spécifique (max 10 uploads/15min)
 app.use('/api/admin/upload', uploadLimiter, require('./routes/upload'));
 
 // Route pour tester toutes les APIs
@@ -95,23 +103,37 @@ app.get('/api/test-routes', (req, res) => {
         'GET /api/services/category/:category - Prestations par catégorie',
         'GET /api/formations - Toutes les formations',
         'GET /api/formations/level/:level - Formations par niveau',
-        'POST /api/contact - Envoyer un message',
+        'GET /api/timeslots/available - Créneaux disponibles',
+        'POST /api/bookings - Créer une réservation (authentifié)',
         'GET /uploads/services/* - Images des prestations'
       ],
+      withRateLimit: [
+        'POST /api/auth/login - Connexion client [Rate limited: 10 échecs/15min]',
+        'POST /api/auth/register - Inscription client [Rate limited: 10 échecs/15min]',
+        'POST /api/contact - Envoyer un message [Rate limited: 10/15min]',
+        'POST /api/admin/login - Connexion admin [Rate limited: 10 échecs/15min]',
+        'POST /api/admin/upload/* - Upload images [Rate limited: 10/15min]'
+      ],
+      withoutRateLimit: [
+        'GET /api/auth/profile - Profil client (AUCUNE limite)',
+        'GET /api/services - Services (AUCUNE limite)',
+        'GET /api/timeslots - Créneaux (AUCUNE limite)',
+        'POST /api/bookings - Réservations (AUCUNE limite)',
+        'Navigation normale (AUCUNE limite)'
+      ],
       admin: [
-        'POST /api/admin/login - Connexion admin',
         'POST /api/admin/setup - Créer premier admin',
         'GET /api/admin/dashboard - Statistiques',
-        'GET /api/contact - Voir messages (admin)',
-        'POST /api/services - Créer prestation (admin)',
-        'POST /api/formations - Créer formation (admin)',
-        'POST /api/admin/upload/service-image - Upload image (admin) [Rate limited: 10/15min]',
-        'DELETE /api/admin/upload/service-image/:filename - Supprimer image (admin)'
+        'GET /api/admin/services - Gérer prestations',
+        'GET /api/admin/bookings - Gérer réservations',
+        'GET /api/admin/timeslots - Gérer créneaux'
       ],
       security: [
-        'Rate Limiting: 100 req/15min (API générale)',
-        'Rate Limiting: 5 req/15min (Login)',
-        'Rate Limiting: 10 req/15min (Upload images)'
+        '✅ Rate Limiting ciblé (login, register, contact, upload)',
+        '✅ Ne compte QUE les échecs (skipSuccessfulRequests)',
+        '❌ PAS de rate limiting sur navigation normale',
+        '🔐 JWT Authentication pour routes protégées',
+        '✅ Conforme RGPD (proportionné et transparent)'
       ]
     }
   });
@@ -154,8 +176,12 @@ const startServer = async () => {
       console.log(`📊 Test DB: http://localhost:${PORT}/api/test-db`);
       console.log(`📋 Routes: http://localhost:${PORT}/api/test-routes`);
       console.log(`📸 Uploads: http://localhost:${PORT}/uploads/services/`);
-      console.log(`🛡️  Rate Limiting activé`);
-      console.log(`🎯 API Ready!`);
+      console.log(`🛡️  Rate Limiting: Ciblé et intelligent`);
+      console.log(`   ├── Login/Register: 10 échecs max / 15min`);
+      console.log(`   ├── Contact: 10 messages max / 15min`);
+      console.log(`   ├── Upload: 10 fichiers max / 15min`);
+      console.log(`   └── Profile/Navigation: ILLIMITÉ ✅`);
+      console.log(`🎯 API Ready pour la PRODUCTION !`);
     });
     
   } catch (error) {

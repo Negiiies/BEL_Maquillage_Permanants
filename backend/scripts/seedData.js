@@ -162,7 +162,7 @@ const seedDatabase = async () => {
     }
 
     // 4. Générer des créneaux pour les 30 prochains jours
-    await generateTimeSlots();
+    //await generateTimeSlots();
 
     // 5. Créer quelques réservations de test
     await createSampleBookings();
@@ -233,64 +233,64 @@ const generateTimeSlots = async () => {
   console.log(`✅ ${slots.length} créneaux générés pour 30 jours`);
 };
 
-// Fonction pour créer des réservations d'exemple
 const createSampleBookings = async () => {
-  const existingBookings = await Booking.count();
-  if (existingBookings > 0) {
-    console.log('✅ Réservations déjà existantes');
-    return;
-  }
+  try {
+    const existingBookings = await Booking.count();
+    if (existingBookings > 0) {
+      console.log('✅ Réservations déjà existantes');
+      return;
+    }
 
-  const clients = await Client.findAll({ limit: 3 });
-  const services = await Service.findAll({ limit: 5 });
-  const timeSlots = await TimeSlot.findAll({ 
-    limit: 10,
-    order: [['date', 'ASC']]
-  });
+    const clients = await Client.findAll({ limit: 3 });
+    const services = await Service.findAll({ limit: 5 });
+    const timeSlots = await TimeSlot.findAll({ 
+      limit: 10,
+      order: [['date', 'ASC']]
+    });
 
-  if (clients.length > 0 && services.length > 0 && timeSlots.length > 0) {
+    // Vérifier qu'on a bien des données
+    if (clients.length === 0 || services.length === 0 || timeSlots.length === 0) {
+      console.log('⚠️ Pas assez de données pour créer des réservations de test');
+      return;
+    }
+
     const bookings = [
       {
         clientId: clients[0].id,
-        serviceId: services[0].id, // Microblading
+        serviceId: services[0].id,
         timeSlotId: timeSlots[0].id,
         bookingDate: new Date(`${timeSlots[0].date}T${timeSlots[0].startTime}`),
-        duration: 90,
+        duration: 120,
         totalPrice: services[0].price,
         status: 'confirmed',
-        clientNotes: 'Première séance de microblading',
-        confirmationSent: true
+        paymentStatus: 'paid'
       },
       {
         clientId: clients[1].id,
-        serviceId: services[4].id, // Extensions volume russe
+        serviceId: services[1].id,
         timeSlotId: timeSlots[2].id,
         bookingDate: new Date(`${timeSlots[2].date}T${timeSlots[2].startTime}`),
-        duration: 60,
-        totalPrice: services[4].price,
+        duration: 90,
+        totalPrice: services[1].price,
         status: 'pending',
-        clientNotes: 'Pose d\'extensions volume russe'
-      },
-      {
-        clientId: clients[2].id,
-        serviceId: services[7].id, // Rehaussement
-        timeSlotId: timeSlots[4].id,
-        bookingDate: new Date(`${timeSlots[4].date}T${timeSlots[4].startTime}`),
-        duration: 30,
-        totalPrice: services[7].price,
-        status: 'completed',
-        clientNotes: 'Rehaussement de cils + teinture'
+        paymentStatus: 'pending'
       }
     ];
 
     await Booking.bulkCreate(bookings);
     
     // Mettre à jour les compteurs de créneaux
-    await timeSlots[0].update({ currentBookings: 1 });
-    await timeSlots[2].update({ currentBookings: 1 });
-    await timeSlots[4].update({ currentBookings: 1 });
+    for (const booking of bookings) {
+      const slot = await TimeSlot.findByPk(booking.timeSlotId);
+      if (slot) {
+        await slot.update({ currentBookings: slot.currentBookings + 1 });
+      }
+    }
     
-    console.log('✅ 3 réservations d\'exemple créées');
+    console.log(`✅ ${bookings.length} réservations créées`);
+  } catch (error) {
+    console.error('⚠️ Impossible de créer les réservations de test:', error.message);
+    // On ne bloque pas le seed si les bookings échouent
   }
 };
 

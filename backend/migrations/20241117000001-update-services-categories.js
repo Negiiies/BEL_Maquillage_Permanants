@@ -8,15 +8,23 @@ module.exports = {
     // Étape 1 : Désactiver temporairement les contraintes de clés étrangères
     await queryInterface.sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
 
-    // Étape 2 : Sauvegarder les anciens services (au cas où il y a des réservations liées)
-    const [oldServices] = await queryInterface.sequelize.query(
-      'SELECT * FROM Services'
+    // Étape 2 : Vérifier si la table existe avant de sauvegarder
+    const [tables] = await queryInterface.sequelize.query(
+      "SHOW TABLES LIKE 'Services'"
     );
-    console.log(`📦 ${oldServices.length} services existants trouvés`);
-
-    // Étape 3 : Supprimer la table Services
-    await queryInterface.dropTable('Services');
-    console.log('✅ Ancienne table Services supprimée');
+    
+    let oldServices = [];
+    if (tables.length > 0) {
+      // La table existe, on sauvegarde les données
+      [oldServices] = await queryInterface.sequelize.query('SELECT * FROM Services');
+      console.log(`📦 ${oldServices.length} services existants trouvés`);
+      
+      // Étape 3 : Supprimer l'ancienne table
+      await queryInterface.dropTable('Services');
+      console.log('✅ Ancienne table Services supprimée');
+    } else {
+      console.log('ℹ️ Table Services inexistante, création directe');
+    }
 
     // Étape 4 : Recréer la table Services avec la nouvelle structure
     await queryInterface.createTable('Services', {

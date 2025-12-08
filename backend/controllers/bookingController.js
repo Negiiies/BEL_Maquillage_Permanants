@@ -82,27 +82,43 @@ const createBooking = async (req, res) => {
     }
     
     // Calculer la durée par défaut selon le service
-    let duration = 60; // par défaut
-    if (service.category === 'maquillage_permanent') duration = 90;
-    else if (service.category === 'extensions_cils') duration = 60;
-    else if (service.category === 'soins_regard') duration = 30;
+    // ✅ NOUVEAU
+const duration = service.duration || 60;
     
     // Créer la réservation
-    const booking = await Booking.create({
-      clientId,
-      serviceId,
-      timeSlotId,
-      bookingDate: slotDateTime,
-      duration,
-      clientNotes: clientNotes ? clientNotes.trim() : null,
-      totalPrice: service.price,
-      status: 'pending'
-    }, { transaction });
-    
-    // Mettre à jour le compteur de réservations du créneau
-    await timeSlot.update({
-      currentBookings: timeSlot.currentBookings + 1
-    }, { transaction });
+    // Créer la réservation
+const booking = await Booking.create({
+  clientId,
+  serviceId,
+  timeSlotId,
+  bookingDate: slotDateTime,
+  duration,
+  clientNotes: clientNotes ? clientNotes.trim() : null,
+  totalPrice: service.price,
+  status: 'pending'
+}, { transaction });
+
+// ⭐ BLOQUER TOUS LES CRÉNEAUX NÉCESSAIRES (logique Planity)
+const serviceEndTime = new Date(slotDateTime.getTime() + (duration * 60000));
+
+const allRequiredSlots = await TimeSlot.findAll({
+  where: {
+    date: timeSlot.date,
+    startTime: { [Op.gte]: timeSlot.startTime },
+    endTime: { [Op.lte]: serviceEndTime.toTimeString().slice(0, 8) }
+  },
+  transaction
+});
+
+console.log(`📌 Blocage de ${allRequiredSlots.length} créneaux pour cette réservation`);
+
+// Incrémenter le compteur de chaque créneau nécessaire
+for (const reqSlot of allRequiredSlots) {
+  await reqSlot.update({
+    currentBookings: reqSlot.currentBookings + 1
+  }, { transaction });
+  console.log(`   ✓ Créneau ${reqSlot.startTime}-${reqSlot.endTime} bloqué`);
+}
     
     await transaction.commit();
     

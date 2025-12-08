@@ -40,7 +40,7 @@ export default function ReservationPage() {
   
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
-  const [loadingSlots, setLoadingSlots] = useState(false) // ⭐ Loading créneaux
+  const [loadingSlots, setLoadingSlots] = useState(false)
   const [error, setError] = useState('')
   const [daysToShow, setDaysToShow] = useState(7)
   
@@ -89,19 +89,27 @@ export default function ReservationPage() {
   useEffect(() => {
     if (selectedService && step === 2) {
       const fetchTimeSlots = async () => {
-        setLoadingSlots(true) // ⭐ Début loading
+        setLoadingSlots(true)
         try {
+          console.log('🔍 Fetching slots for service:', selectedService.id)
+          
           const response = await fetch(
             `${API_URL}/api/timeslots/available?serviceId=${selectedService.id}`
           )
           const data = await response.json()
+          
+          console.log('🔍 API Response:', data)
+          console.log('🔍 Slots array:', data.data?.slots)
+          console.log('🔍 Nombre de slots:', data.data?.slots?.length)
+          
           if (data.success) {
             setTimeSlots(data.data.slots || [])
+            console.log('✅ TimeSlots mis à jour:', data.data.slots?.length || 0, 'créneaux')
           }
         } catch (error) {
-          console.error('Erreur chargement créneaux:', error)
+          console.error('❌ Erreur chargement créneaux:', error)
         } finally {
-          setLoadingSlots(false) // ⭐ Fin loading
+          setLoadingSlots(false)
         }
       }
       fetchTimeSlots()
@@ -274,7 +282,7 @@ export default function ReservationPage() {
           </div>
         )}
 
-        {/* Step 2: Choose Time Slot - ✅ GRID COMPACT + SKELETON */}
+        {/* Step 2: Choose Time Slot */}
         {step === 2 && selectedService && (
           <div className="bg-white rounded-2xl shadow-sm p-8">
             <button
@@ -297,7 +305,6 @@ export default function ReservationPage() {
 
             <h2 className="text-2xl font-light text-gray-900 mb-6">Choisissez un créneau</h2>
             
-            {/* ⭐ SKELETON LOADER */}
             {loadingSlots ? (
               <div className="space-y-8 animate-pulse">
                 {[1, 2, 3].map((i) => (
@@ -337,7 +344,6 @@ export default function ReservationPage() {
                           year: 'numeric'
                         })}
                       </h3>
-                      {/* ⭐ GRID COMPACT 10 COLONNES */}
                       <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-10 gap-2">
                         {slots.map((slot) => (
                           <button
@@ -355,7 +361,6 @@ export default function ReservationPage() {
                   ))}
                 </div>
 
-                {/* Bouton "Afficher plus de disponibilités" */}
                 {daysToShow < Object.keys(groupSlotsByDate(timeSlots)).length && (
                   <div className="mt-8">
                     <button

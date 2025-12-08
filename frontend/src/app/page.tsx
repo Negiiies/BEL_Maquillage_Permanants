@@ -8,12 +8,12 @@ import LogoTransition from '@/components/LogoTransition'
 export default function Home() {
   const leftVideoRef = useRef<HTMLVideoElement | null>(null)
   const rightVideoRef = useRef<HTMLVideoElement | null>(null)
-  const ctaSectionRef = useRef<HTMLDivElement | null>(null) // ✅ Référence à la section CTA
+  const ctaSectionRef = useRef<HTMLDivElement | null>(null)
   const [leftVideoPlaying, setLeftVideoPlaying] = useState(false)
   const [rightVideoPlaying, setRightVideoPlaying] = useState(false)
   const [showTransition, setShowTransition] = useState(true)
   const [showContent, setShowContent] = useState(false)
-  const [parallaxOffset, setParallaxOffset] = useState(0) // ✅ Offset calculé depuis la section
+  const [parallaxOffset, setParallaxOffset] = useState(0)
 
   const handleTransitionComplete = () => {
     setShowTransition(false)
@@ -22,30 +22,63 @@ export default function Home() {
     }, 300)
   }
 
-  // ✅ Effet scroll pour parallax - STYLE ELEMENTOR
+  // Effet scroll pour parallax - optimisé avec throttle
   useEffect(() => {
+    let ticking = false
+
     const handleScroll = () => {
-      if (ctaSectionRef.current) {
-        const rect = ctaSectionRef.current.getBoundingClientRect()
-        const windowHeight = window.innerHeight
-        
-        // Calculer le centre de la section par rapport à la fenêtre
-        const sectionCenter = rect.top + rect.height / 2
-        const windowCenter = windowHeight / 2
-        
-        // Distance du centre de la section au centre de la fenêtre
-        const distanceFromCenter = windowCenter - sectionCenter
-        
-        // Appliquer le parallax (plus on scroll, plus ça bouge)
-        const offset = distanceFromCenter * 0.3
-        setParallaxOffset(offset)
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          if (ctaSectionRef.current) {
+            const rect = ctaSectionRef.current.getBoundingClientRect()
+            const windowHeight = window.innerHeight
+            const sectionCenter = rect.top + rect.height / 2
+            const windowCenter = windowHeight / 2
+            const distanceFromCenter = windowCenter - sectionCenter
+            const offset = distanceFromCenter * 0.3
+            setParallaxOffset(offset)
+          }
+          ticking = false
+        })
+        ticking = true
       }
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
-    handleScroll() // ✅ Appeler au chargement
+    handleScroll()
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
+
+  // Intersection Observer pour les animations au scroll - optimisé
+  useEffect(() => {
+    if (!showContent) return
+
+    const observerOptions = {
+      threshold: 0.15,
+      rootMargin: '0px 0px -50px 0px'
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach((entry) => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('animate-in')
+          // Observer une seule fois puis arrêter d'observer
+          observer.unobserve(entry.target)
+        }
+      })
+    }, observerOptions)
+
+    // Petit délai pour s'assurer que le DOM est prêt
+    const timer = setTimeout(() => {
+      const elements = document.querySelectorAll('.animate-on-scroll')
+      elements.forEach((el) => observer.observe(el))
+    }, 100)
+
+    return () => {
+      clearTimeout(timer)
+      observer.disconnect()
+    }
+  }, [showContent])
 
   const handleMouseEnter = async (videoRef: React.RefObject<HTMLVideoElement | null>, setPlaying: (playing: boolean) => void) => {
     if (videoRef.current) {
@@ -76,7 +109,7 @@ export default function Home() {
 
       <div className={`relative transition-opacity duration-1000 ${showContent ? 'opacity-100' : 'opacity-0'}`}>
         
-        {/* ✅ HERO SECTION AVEC 2 VIDÉOS - INCHANGÉ */}
+        {/* HERO SECTION AVEC 2 VIDÉOS */}
         <section className="h-screen relative overflow-hidden">
           <div className="flex h-full">
             {/* Vidéo Prestations */}
@@ -167,71 +200,71 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ✨ SECTION ÉDITORIALE MAGAZINE - REMPLACE VIDÉO */}
+        {/* SECTION ÉDITORIALE MAGAZINE AVEC ANIMATIONS */}
         <section className="min-h-screen bg-[#FAF7F2] py-32 px-8 font-serif">
           <div className="max-w-7xl mx-auto">
             
-            <div className="text-center mb-20">
+            <div className="text-center mb-20 animate-on-scroll opacity-0 translate-y-8">
               <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
-              <p className="text-xs uppercase tracking-[0.3em] text-neutral-500 mb-6">
+              <p className="text-xs uppercase tracking-[0.3em] text-neutral-600 mb-6">
                 BEL Institut de Beauté
               </p>
               <h2 className="text-6xl md:text-7xl lg:text-8xl font-light leading-[1.1] mb-8">
-                <span className="italic font-extralight text-neutral-700">L'Art</span><br/>
+                <span className="italic font-extralight text-neutral-800">L'Art</span><br/>
                 <span className="text-neutral-900">de la Beauté</span>
               </h2>
-              <p className="text-xl text-neutral-700 max-w-3xl mx-auto font-light leading-relaxed">
+              <p className="text-xl text-neutral-800 max-w-3xl mx-auto font-light leading-relaxed">
                 Découvrez notre savoir-faire unique en maquillage permanent
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 gap-16 items-start max-w-6xl mx-auto">
               
-              <div className="space-y-8">
-                <div className="aspect-[3/4] bg-neutral-200 overflow-hidden">
+              <div className="space-y-8 animate-on-scroll opacity-0 -translate-x-8">
+                <div className="aspect-[3/4] bg-neutral-200 overflow-hidden group">
                   <img 
                     src="/images/deux.JPG" 
                     alt="L'Art de la Beauté"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
                 <div className="border-t-2 border-neutral-900 pt-6">
-                  <p className="text-neutral-700 font-light leading-relaxed">
+                  <p className="text-neutral-800 font-light leading-relaxed">
                     Notre approche unique combine expertise technique et sens artistique pour révéler 
                     votre beauté naturelle avec subtilité et élégance.
                   </p>
                 </div>
               </div>
 
-              <div className="space-y-12">
+              <div className="space-y-12 animate-on-scroll opacity-0 translate-x-8">
                 <div className="space-y-6">
-                  <div className="text-7xl font-light text-neutral-300 leading-none">01</div>
+                  <div className="text-7xl font-light text-neutral-400 leading-none">01</div>
                   <h3 className="text-3xl font-light border-b border-neutral-300 pb-4">
                     Notre Philosophie
                   </h3>
-                  <p className="text-neutral-700 font-light leading-relaxed">
+                  <p className="text-neutral-800 font-light leading-relaxed">
                     Chez BEL, chaque prestation est pensée comme une œuvre unique. Nous croyons que 
                     la beauté réside dans l'authenticité et la confiance en soi.
                   </p>
-                  <p className="text-neutral-700 font-light leading-relaxed">
+                  <p className="text-neutral-800 font-light leading-relaxed">
                     Notre mission est de sublimer ce qui vous rend unique, avec des techniques 
                     avant-gardistes et un accompagnement personnalisé.
                   </p>
                 </div>
 
-                <div className="aspect-video bg-neutral-200 overflow-hidden">
+                <div className="aspect-video bg-neutral-200 overflow-hidden group">
                   <img 
                     src="/images/Carole.JPG" 
                     alt="Expertise BEL"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
 
                 <div className="border-l-2 border-neutral-900 pl-6 py-4">
-                  <p className="text-2xl font-light italic text-neutral-800 leading-relaxed mb-4">
+                  <p className="text-2xl font-light italic text-neutral-900 leading-relaxed mb-4">
                     "La beauté commence là où l'authenticité rencontre l'expertise"
                   </p>
-                  <p className="text-sm uppercase tracking-[0.2em] text-neutral-500">
+                  <p className="text-sm uppercase tracking-[0.2em] text-neutral-600">
                     — Carole, Fondatrice
                   </p>
                 </div>
@@ -239,15 +272,15 @@ export default function Home() {
                 <div className="grid grid-cols-3 gap-8 border-t border-neutral-300 pt-8">
                   <div className="text-center">
                     <div className="text-4xl font-light mb-2">5+</div>
-                    <p className="text-xs uppercase tracking-wider text-neutral-600">Années</p>
+                    <p className="text-xs uppercase tracking-wider text-neutral-700">Années</p>
                   </div>
                   <div className="text-center border-l border-neutral-300">
                     <div className="text-4xl font-light mb-2">500+</div>
-                    <p className="text-xs uppercase tracking-wider text-neutral-600">Clientes</p>
+                    <p className="text-xs uppercase tracking-wider text-neutral-700">Clientes</p>
                   </div>
                   <div className="text-center border-l border-neutral-300">
                     <div className="text-4xl font-light mb-2">98%</div>
-                    <p className="text-xs uppercase tracking-wider text-neutral-600">Satisfaction</p>
+                    <p className="text-xs uppercase tracking-wider text-neutral-700">Satisfaction</p>
                   </div>
                 </div>
               </div>
@@ -256,30 +289,30 @@ export default function Home() {
           </div>
         </section>
 
-        {/* POURQUOI BEL - STYLE MAGAZINE */}
+        {/* POURQUOI BEL - AVEC ANIMATIONS */}
         <section className="py-32 bg-white border-t border-neutral-300 font-serif">
           <div className="max-w-7xl mx-auto px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               
-              <div className="relative">
-                <div className="aspect-[4/5] overflow-hidden">
+              <div className="relative animate-on-scroll opacity-0 -translate-x-8">
+                <div className="aspect-[4/5] overflow-hidden group">
                   <img 
                     src="/images/trois.JPG" 
                     alt="BEL Institut"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
-                <div className="absolute -bottom-6 -right-6 bg-[#FAF7F2] border border-neutral-300 p-8">
+                <div className="absolute -bottom-6 -right-6 bg-[#FAF7F2] border border-neutral-300 p-8 shadow-lg">
                   <div className="text-center">
                     <div className="text-5xl font-light text-neutral-900">5+</div>
-                    <div className="text-sm text-neutral-600 mt-2 tracking-wider">Années d'expertise</div>
+                    <div className="text-sm text-neutral-700 mt-2 tracking-wider">Années d'expertise</div>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-8">
+              <div className="space-y-8 animate-on-scroll opacity-0 translate-x-8">
                 <div className="w-12 h-[1px] bg-neutral-900 mb-8"></div>
-                <p className="text-xs tracking-[0.3em] uppercase text-neutral-500">
+                <p className="text-xs tracking-[0.3em] uppercase text-neutral-600">
                   Pourquoi choisir BEL ?
                 </p>
 
@@ -287,23 +320,23 @@ export default function Home() {
                   L'Excellence au Service de Votre Beauté
                 </h2>
 
-                <p className="text-lg text-neutral-700 leading-relaxed font-light">
+                <p className="text-lg text-neutral-800 leading-relaxed font-light">
                   Chez BEL, nous nous engageons à offrir des soins de qualité qui révèlent 
                   votre beauté naturelle avec des techniques avancées et des produits haut de gamme.
                 </p>
 
                 <div className="space-y-4 pt-6">
-                  <div className="flex items-start space-x-4">
-                    <div className="w-8 h-[1px] bg-neutral-400 mt-3"></div>
-                    <span className="text-neutral-700 font-light">Soin minutieux et personnalisé</span>
+                  <div className="flex items-start space-x-4 group">
+                    <div className="w-8 h-[1px] bg-neutral-400 mt-3 transition-all duration-300 group-hover:w-12"></div>
+                    <span className="text-neutral-800 font-light">Soin minutieux et personnalisé</span>
                   </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-8 h-[1px] bg-neutral-400 mt-3"></div>
-                    <span className="text-neutral-700 font-light">Équipe experte et passionnée</span>
+                  <div className="flex items-start space-x-4 group">
+                    <div className="w-8 h-[1px] bg-neutral-400 mt-3 transition-all duration-300 group-hover:w-12"></div>
+                    <span className="text-neutral-800 font-light">Équipe experte et passionnée</span>
                   </div>
-                  <div className="flex items-start space-x-4">
-                    <div className="w-8 h-[1px] bg-neutral-400 mt-3"></div>
-                    <span className="text-neutral-700 font-light">Produits respectueux de votre bien-être</span>
+                  <div className="flex items-start space-x-4 group">
+                    <div className="w-8 h-[1px] bg-neutral-400 mt-3 transition-all duration-300 group-hover:w-12"></div>
+                    <span className="text-neutral-800 font-light">Produits respectueux de votre bien-être</span>
                   </div>
                 </div>
 
@@ -322,16 +355,16 @@ export default function Home() {
           </div>
         </section>
 
-        {/* SERVICES - STYLE MAGAZINE */}
+        {/* SERVICES - AVEC ANIMATIONS */}
         <section className="py-32 bg-[#FAF7F2] border-t border-neutral-300 font-serif">
           <div className="max-w-7xl mx-auto px-8">
             
-            <div className="text-center mb-20">
+            <div className="text-center mb-20 animate-on-scroll opacity-0 translate-y-8">
               <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
               <h2 className="text-5xl md:text-6xl font-light text-neutral-900 mb-8">
                 Découvrez nos Services
               </h2>
-              <p className="text-lg text-neutral-700 max-w-3xl mx-auto leading-relaxed font-light">
+              <p className="text-lg text-neutral-800 max-w-3xl mx-auto leading-relaxed font-light">
                 Nos prestations sont réalisées avec minutie et expertise, dans une ambiance 
                 apaisante et professionnelle.
               </p>
@@ -339,7 +372,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-16 max-w-6xl mx-auto">
               
-              <div className="text-center group">
+              <div className="text-center group animate-on-scroll opacity-0 translate-y-8" style={{ transitionDelay: '100ms' }}>
                 <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
                   <img 
                     src="/images/sourcilss.JPG" 
@@ -350,7 +383,7 @@ export default function Home() {
                 <h3 className="text-3xl font-light text-neutral-900 mb-4 tracking-wide">
                   SOURCILS
                 </h3>
-                <p className="text-neutral-700 mb-6 leading-relaxed font-light">
+                <p className="text-neutral-800 mb-6 leading-relaxed font-light">
                   Redéfinissez vos sourcils pour un regard structuré et harmonieux avec nos techniques précises.
                 </p>
                 <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
@@ -358,7 +391,7 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="text-center group">
+              <div className="text-center group animate-on-scroll opacity-0 translate-y-8" style={{ transitionDelay: '200ms' }}>
                 <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
                   <img 
                     src="/images/cilss.JPG" 
@@ -369,7 +402,7 @@ export default function Home() {
                 <h3 className="text-3xl font-light text-neutral-900 mb-4 tracking-wide">
                   CILS
                 </h3>
-                <p className="text-neutral-700 mb-6 leading-relaxed font-light">
+                <p className="text-neutral-800 mb-6 leading-relaxed font-light">
                   Sublimez votre regard avec nos extensions et rehaussements de cils pour un effet spectaculaire.
                 </p>
                 <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
@@ -377,7 +410,7 @@ export default function Home() {
                 </button>
               </div>
 
-              <div className="text-center group">
+              <div className="text-center group animate-on-scroll opacity-0 translate-y-8" style={{ transitionDelay: '300ms' }}>
                 <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
                   <img 
                     src="/images/levres.JPG" 
@@ -388,7 +421,7 @@ export default function Home() {
                 <h3 className="text-3xl font-light text-neutral-900 mb-4 tracking-wide">
                   LÈVRES
                 </h3>
-                <p className="text-neutral-700 mb-6 leading-relaxed font-light">
+                <p className="text-neutral-800 mb-6 leading-relaxed font-light">
                   Révélez la beauté de vos lèvres avec notre expertise en maquillage permanent pour un sourire éclatant.
                 </p>
                 <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
@@ -399,7 +432,7 @@ export default function Home() {
           </div>
         </section>
 
-        {/* ✨ CTA AVEC EFFET PARALLAX - STYLE ELEMENTOR */}
+        {/* CTA AVEC EFFET PARALLAX */}
         <section 
           ref={ctaSectionRef}
           className="relative h-[70vh] flex items-center justify-center overflow-hidden"
@@ -408,7 +441,7 @@ export default function Home() {
             <img 
               src="/images/Bel.JPG" 
               alt="Prenons soin de vous"
-              className="w-full h-full object-cover transition-transform duration-100 ease-out"
+              className="w-full h-full object-cover will-change-transform"
               style={{
                 transform: `translate3d(0px, ${parallaxOffset}px, 0px)`,
                 objectPosition: 'center center'
@@ -417,7 +450,7 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/50"></div>
           </div>
           
-          <div className="relative z-10 text-center text-white px-4 font-serif">
+          <div className="relative z-10 text-center text-white px-4 font-serif animate-on-scroll opacity-0 scale-95">
             <p className="text-sm tracking-[0.3em] uppercase mb-4 opacity-90">
               Prenons soin de vous...
             </p>
@@ -432,14 +465,14 @@ export default function Home() {
           </div>
         </section>
 
-        {/* À PROPOS - STYLE MAGAZINE */}
+        {/* À PROPOS - AVEC ANIMATIONS */}
         <section className="py-32 bg-white border-t border-neutral-300 font-serif">
           <div className="max-w-7xl mx-auto px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               
-              <div className="space-y-8 lg:pr-12">
+              <div className="space-y-8 lg:pr-12 animate-on-scroll opacity-0 -translate-x-8">
                 <div className="w-12 h-[1px] bg-neutral-900 mb-8"></div>
-                <p className="text-xs tracking-[0.3em] uppercase text-neutral-500">
+                <p className="text-xs tracking-[0.3em] uppercase text-neutral-600">
                   À propos de moi
                 </p>
 
@@ -447,7 +480,7 @@ export default function Home() {
                   Je suis Carole
                 </h2>
 
-                <div className="space-y-6 text-neutral-700 leading-relaxed border-l-2 border-neutral-900 pl-8 font-light">
+                <div className="space-y-6 text-neutral-800 leading-relaxed border-l-2 border-neutral-900 pl-8 font-light">
                   <p>
                     Fondatrice de BEL maquillage permanent, spécialisée dans le bien-être et la beauté.
                   </p>
@@ -463,9 +496,9 @@ export default function Home() {
 
                 <div className="pt-8">
                   <Link href="/contact">
-                    <button className="inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 hover:border-neutral-500 transition-colors text-sm uppercase tracking-[0.2em]">
+                    <button className="inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 hover:border-neutral-500 transition-colors text-sm uppercase tracking-[0.2em] group">
                       <span>Réservez votre soin</span>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
                     </button>
@@ -473,12 +506,12 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="relative">
-                <div className="aspect-[4/5] overflow-hidden">
+              <div className="relative animate-on-scroll opacity-0 translate-x-8">
+                <div className="aspect-[4/5] overflow-hidden group">
                   <img 
                     src="/images/quatre.JPG" 
                     alt="Carole - Fondatrice"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                     style={{ objectPosition: 'center 20%' }}
                   />
                 </div>
@@ -487,19 +520,19 @@ export default function Home() {
           </div>
         </section>
 
-        {/* TÉMOIGNAGES - STYLE MAGAZINE */}
+        {/* TÉMOIGNAGES - AVEC ANIMATIONS */}
         <section className="py-32 bg-[#FAF7F2] border-t border-neutral-300 font-serif">
           <div className="max-w-7xl mx-auto px-8">
             
-            <div className="text-center mb-20">
+            <div className="text-center mb-20 animate-on-scroll opacity-0 translate-y-8">
               <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
-              <p className="text-xs tracking-[0.3em] uppercase text-neutral-500 mb-6">
+              <p className="text-xs tracking-[0.3em] uppercase text-neutral-600 mb-6">
                 Témoignages
               </p>
               <h2 className="text-5xl md:text-6xl font-light text-neutral-900 mb-8">
                 Les Retours Clients
               </h2>
-              <p className="text-lg text-neutral-700 max-w-3xl mx-auto leading-relaxed font-light">
+              <p className="text-lg text-neutral-800 max-w-3xl mx-auto leading-relaxed font-light">
                 Découvrez les témoignages de celles qui ont fait confiance à notre expertise.
               </p>
             </div>
@@ -507,14 +540,18 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               
               {[
-                { name: 'Manon Hans', initial: 'M', color: 'bg-purple-200', text: 'Magnifique prestation de rehaussement de cils coréen + teinture. Le résultat est incroyable. Carole est super sympa!' },
-                { name: 'Marion mrp', initial: 'M', color: 'bg-pink-200', text: 'Je suis RA-VIE ! J\'ai fais une prestation de rehaussement de cils coréen et le résultat est juste magnifique 😍' },
-                { name: 'Charlotte', initial: 'C', color: 'bg-indigo-200', text: 'Un grand merci à Carole pour son travail exceptionnel sur mes sourcils ! Très professionnelle et à l\'écoute.' },
-                { name: 'Mélia Belkacemi', initial: 'M', color: 'bg-rose-200', text: 'Un moment beauté & bonne humeur ✨ Le résultat est vraiment bluffant, naturel, soigné.' },
-                { name: 'Manon Wrk', initial: 'M', color: 'bg-violet-200', text: 'Très satisfaite ! Son travail est minutieux et elle a réussi à réaliser un cover magnifique.' },
-                { name: 'Laura', initial: 'L', color: 'bg-green-200', text: 'Vraiment un grand merci ! Carole est professionnel, rassurante et vraiment minutieuse.' }
+                { name: 'Manon Hans', initial: 'M', color: 'bg-purple-200', text: 'Magnifique prestation de rehaussement de cils coréen + teinture. Le résultat est incroyable. Carole est super sympa!', delay: '100ms' },
+                { name: 'Marion mrp', initial: 'M', color: 'bg-pink-200', text: 'Je suis RA-VIE ! J\'ai fais une prestation de rehaussement de cils coréen et le résultat est juste magnifique 😍', delay: '150ms' },
+                { name: 'Charlotte', initial: 'C', color: 'bg-indigo-200', text: 'Un grand merci à Carole pour son travail exceptionnel sur mes sourcils ! Très professionnelle et à l\'écoute.', delay: '200ms' },
+                { name: 'Mélia Belkacemi', initial: 'M', color: 'bg-rose-200', text: 'Un moment beauté & bonne humeur ✨ Le résultat est vraiment bluffant, naturel, soigné.', delay: '250ms' },
+                { name: 'Manon Wrk', initial: 'M', color: 'bg-violet-200', text: 'Très satisfaite ! Son travail est minutieux et elle a réussi à réaliser un cover magnifique.', delay: '300ms' },
+                { name: 'Laura', initial: 'L', color: 'bg-green-200', text: 'Vraiment un grand merci ! Carole est professionnel, rassurante et vraiment minutieuse.', delay: '350ms' }
               ].map((testimonial, index) => (
-                <div key={index} className="bg-white border border-neutral-300 p-8 hover:shadow-lg transition-shadow">
+                <div 
+                  key={index} 
+                  className="bg-white border border-neutral-300 p-8 transition-all duration-500 hover:shadow-lg hover:-translate-y-1 animate-on-scroll opacity-0 translate-y-8"
+                  style={{ transitionDelay: testimonial.delay }}
+                >
                   <div className="flex items-center mb-6">
                     <div className={`w-12 h-12 rounded-full ${testimonial.color} flex items-center justify-center text-neutral-900 font-medium text-xl`}>
                       {testimonial.initial}
@@ -530,7 +567,7 @@ export default function Home() {
                       </svg>
                     ))}
                   </div>
-                  <p className="text-neutral-700 leading-relaxed text-sm font-light">
+                  <p className="text-neutral-800 leading-relaxed text-sm font-light">
                     {testimonial.text}
                   </p>
                 </div>
@@ -541,6 +578,19 @@ export default function Home() {
         </section>
 
       </div>
+
+      <style jsx global>{`
+        .animate-on-scroll {
+          transition-property: opacity, transform;
+          transition-duration: 0.8s;
+          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .animate-in {
+          opacity: 1 !important;
+          transform: translateY(0) translateX(0) scale(1) !important;
+        }
+      `}</style>
     </>
   )
 }

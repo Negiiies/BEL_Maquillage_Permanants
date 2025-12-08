@@ -8,15 +8,23 @@ module.exports = {
     // Étape 1 : Désactiver contraintes
     await queryInterface.sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
 
-    // Étape 2 : Sauvegarder anciennes formations
-    const [oldFormations] = await queryInterface.sequelize.query(
-      'SELECT * FROM Formations'
+    // Étape 2 : Vérifier si la table existe avant de sauvegarder
+    const [tables] = await queryInterface.sequelize.query(
+      "SHOW TABLES LIKE 'Formations'"
     );
-    console.log(`📚 ${oldFormations.length} formations existantes trouvées`);
-
-    // Étape 3 : Supprimer l'ancienne table
-    await queryInterface.dropTable('Formations');
-    console.log('✅ Ancienne table Formations supprimée');
+    
+    let oldFormations = [];
+    if (tables.length > 0) {
+      // La table existe, on sauvegarde les données
+      [oldFormations] = await queryInterface.sequelize.query('SELECT * FROM Formations');
+      console.log(`📚 ${oldFormations.length} formations existantes trouvées`);
+      
+      // Étape 3 : Supprimer l'ancienne table
+      await queryInterface.dropTable('Formations');
+      console.log('✅ Ancienne table Formations supprimée');
+    } else {
+      console.log('ℹ️ Table Formations inexistante, création directe');
+    }
 
     // Étape 4 : Créer la nouvelle table
     await queryInterface.createTable('Formations', {

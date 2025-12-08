@@ -1,4 +1,4 @@
-// backend/controllers/timeslotController.js - VERSION COMPLÈTE AMÉLIORÉE
+// backend/controllers/timeslotController.js - VERSION PLANITY CORRIGÉE
 const { TimeSlot, Service, Booking, Client, sequelize } = require('../models');
 const { Op } = require('sequelize');
 
@@ -12,59 +12,107 @@ const getServiceDuration = (serviceCategory) => {
   }
 };
 
-// Fonction helper pour vérifier si un créneau peut accueillir un service de durée donnée
+// ✅ NOUVELLE LOGIQUE PLANITY : Vérifier si le créneau + les créneaux consécutifs peuvent accueillir le service
 const canSlotAccommodateService = async (slot, serviceDuration) => {
   const slotStart = new Date(`${slot.date}T${slot.startTime}`);
+  const slotEnd = new Date(`${slot.date}T${slot.endTime}`);
   const serviceEnd = new Date(slotStart.getTime() + (serviceDuration * 60000));
   
-  // Vérifier s'il y a des réservations qui entreraient en conflit
-  const conflictingBookings = await Booking.count({
-    include: [{
-      model: TimeSlot,
-      as: 'timeSlot',
-      where: { 
-        date: slot.date,
-        [Op.or]: [
-          // Créneaux qui commencent pendant notre service
-          {
-            startTime: {
-              [Op.between]: [
-                slot.startTime,
-                serviceEnd.toTimeString().slice(0, 5)
-              ]
-            }
-          },
-          // Créneaux qui se terminent pendant notre service
-          {
-            [Op.and]: [
-              { startTime: { [Op.lt]: slot.startTime } },
-              { endTime: { [Op.gt]: slot.startTime } }
-            ]
-          }
-        ]
+  console.log(`   📏 Créneau: ${slot.startTime}-${slot.endTime}`);
+  console.log(`   ⏱️  Service: ${serviceDuration} min (fin prévue: ${serviceEnd.toTimeString().slice(0, 5)})`);
+  
+  // Calculer la durée du créneau en minutes
+  const slotDurationMinutes = (slotEnd - slotStart) / 60000;
+  
+  // Si le service tient dans ce seul créneau
+  if (serviceDuration <= slotDurationMinutes) {
+    console.log(`   ✅ Service tient dans le créneau unique`);
+    
+    // Vérifier qu'il n'y a pas de réservation sur ce créneau
+    const conflictingBookings = await Booking.count({
+      where: {
+        timeSlotId: slot.id,
+        status: { [Op.notIn]: ['cancelled'] }
       }
-    }],
-    where: {
-      status: { [Op.notIn]: ['cancelled'] },
-      [Op.or]: [
-        // Réservations existantes qui chevaucheraient
-        {
-          bookingDate: {
-            [Op.between]: [slotStart, serviceEnd]
-          }
-        },
-        // Réservations qui commencent avant et finissent pendant notre créneau
-        {
-          [Op.and]: [
-            { bookingDate: { [Op.lt]: slotStart } },
-            sequelize.literal(`DATE_ADD(bookingDate, INTERVAL duration MINUTE) > '${slotStart.toISOString()}'`)
-          ]
-        }
-      ]
+    });
+    
+    if (conflictingBookings > 0) {
+      console.log(`   ❌ Rejeté: Créneau déjà réservé`);
+      return false;
     }
+    
+    console.log(`   ✅ Créneau OK`);
+    return true;
+  }
+  
+  // Si le service nécessite plusieurs créneaux consécutifs
+  console.log(`   🔄 Service nécessite plusieurs créneaux consécutifs`);
+  
+  // ⭐ CORRECTION : Convertir serviceEnd en string HH:MM:SS
+  const serviceEndTimeString = `${String(serviceEnd.getHours()).padStart(2, '0')}:${String(serviceEnd.getMinutes()).padStart(2, '0')}:00`;
+  
+  console.log(`   🔍 Recherche créneaux de ${slot.startTime} jusqu'à ${serviceEndTimeString}`);
+  
+  // Récupérer tous les créneaux du même jour à partir de ce créneau
+  const allSlotsOfDay = await TimeSlot.findAll({
+    where: {
+      date: slot.date,
+      startTime: { 
+        [Op.gte]: slot.startTime,
+        [Op.lt]: serviceEndTimeString  // ✅ Maintenant c'est une string
+      }
+    },
+    include: [{
+      model: Booking,
+      as: 'bookings',
+      where: { status: { [Op.notIn]: ['cancelled'] } },
+      required: false
+    }],
+    order: [['startTime', 'ASC']]
   });
   
-  return conflictingBookings === 0;
+  console.log(`   📊 ${allSlotsOfDay.length} créneaux à vérifier jusqu'à ${serviceEndTimeString}`);
+  
+  // Vérifier que les créneaux sont consécutifs et disponibles
+  let currentTime = new Date(`${slot.date}T${slot.startTime}`);
+  let totalCoveredDuration = 0;
+  
+  for (const timeSlot of allSlotsOfDay) {
+    const tsStart = new Date(`${timeSlot.date}T${timeSlot.startTime}`);
+    const tsEnd = new Date(`${timeSlot.date}T${timeSlot.endTime}`);
+    
+    // Vérifier que le créneau est disponible
+    if (!timeSlot.isAvailable) {
+      console.log(`   ❌ Créneau ${timeSlot.startTime}-${timeSlot.endTime} indisponible`);
+      return false;
+    }
+    
+    // Vérifier qu'il n'y a pas de réservation
+    if (timeSlot.bookings && timeSlot.bookings.length > 0) {
+      console.log(`   ❌ Créneau ${timeSlot.startTime}-${timeSlot.endTime} déjà réservé`);
+      return false;
+    }
+    
+    // Vérifier que le créneau est bien consécutif
+    if (tsStart.getTime() !== currentTime.getTime()) {
+      console.log(`   ❌ Trou dans les créneaux (attendu: ${currentTime.toTimeString().slice(0, 5)}, trouvé: ${timeSlot.startTime})`);
+      return false;
+    }
+    
+    totalCoveredDuration += (tsEnd - tsStart) / 60000;
+    currentTime = tsEnd;
+    
+    console.log(`   ✓ Créneau ${timeSlot.startTime}-${timeSlot.endTime} libre (total couvert: ${totalCoveredDuration}min)`);
+    
+    // Si on a assez de durée, c'est bon
+    if (totalCoveredDuration >= serviceDuration) {
+      console.log(`   ✅ Tous les créneaux nécessaires sont disponibles !`);
+      return true;
+    }
+  }
+  
+  console.log(`   ❌ Rejeté: Pas assez de créneaux consécutifs (${totalCoveredDuration}min < ${serviceDuration}min)`);
+  return false;
 };
 
 // Récupérer les créneaux disponibles (PUBLIC)
@@ -79,9 +127,13 @@ const getAvailableTimeSlots = async (req, res) => {
     if (serviceId) {
       service = await Service.findByPk(serviceId);
       if (service) {
-        serviceDuration = getServiceDuration(service.category);
+        serviceDuration = service.duration || 60;
       }
     }
+    
+    console.log('\n🔍 ===== RECHERCHE CRÉNEAUX =====');
+    console.log('🔍 Service:', service?.name || 'Aucun');
+    console.log('🔍 Durée requise:', serviceDuration, 'minutes');
     
     let whereConditions = {
       isAvailable: true,
@@ -93,10 +145,12 @@ const getAvailableTimeSlots = async (req, res) => {
     // Filtrer par date
     if (date) {
       whereConditions.date = date;
+      console.log('🔍 Date filtrée:', date);
     } else if (startDate && endDate) {
       whereConditions.date = {
         [Op.between]: [startDate, endDate]
       };
+      console.log('🔍 Période:', startDate, 'à', endDate);
     } else {
       // Par défaut, les 30 prochains jours
       const today = new Date();
@@ -109,13 +163,14 @@ const getAvailableTimeSlots = async (req, res) => {
           futureDate.toISOString().split('T')[0]
         ]
       };
+      console.log('🔍 Période par défaut: 30 prochains jours');
     }
     
     // Filtrer par service si spécifié
     if (serviceId) {
       whereConditions[Op.or] = [
         { serviceId: serviceId },
-        { serviceId: null } // Créneaux disponibles pour tous les services
+        { serviceId: null }
       ];
     }
     
@@ -131,10 +186,14 @@ const getAvailableTimeSlots = async (req, res) => {
       order: [['date', 'ASC'], ['startTime', 'ASC']]
     });
     
+    console.log(`\n📊 ${timeSlots.length} créneaux trouvés dans la DB`);
+    
     // ✅ FILTRAGE INTELLIGENT : Vérifier que chaque créneau peut vraiment accueillir le service
     const availableSlots = [];
     
     for (const slot of timeSlots) {
+      console.log(`\n🔎 Vérification créneau #${slot.id}: ${slot.date} ${slot.startTime}-${slot.endTime}`);
+      
       const canAccommodate = await canSlotAccommodateService(slot, serviceDuration);
       
       if (canAccommodate) {
@@ -156,6 +215,9 @@ const getAvailableTimeSlots = async (req, res) => {
         });
       }
     }
+    
+    console.log(`\n✅ RÉSULTAT FINAL: ${availableSlots.length} créneaux disponibles`);
+    console.log('================================\n');
     
     // Grouper par date pour une meilleure présentation
     const groupedSlots = availableSlots.reduce((acc, slot) => {
@@ -184,7 +246,7 @@ const getAvailableTimeSlots = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Erreur getAvailableTimeSlots:', error);
+    console.error('❌ Erreur getAvailableTimeSlots:', error);
     res.status(500).json({
       success: false,
       message: 'Erreur lors de la récupération des créneaux',
@@ -288,7 +350,7 @@ const createTimeSlots = async (req, res) => {
 // Créer des créneaux automatiquement pour une période (ADMIN)
 const generateTimeSlots = async (req, res) => {
   try {
-    const { startDate, endDate, weekDays = [1, 2, 3, 4, 5, 6] } = req.body; // 1=lundi, 6=samedi
+    const { startDate, endDate, weekDays = [1, 2, 3, 4, 5, 6] } = req.body;
     
     if (!startDate || !endDate) {
       return res.status(400).json({
@@ -301,16 +363,15 @@ const generateTimeSlots = async (req, res) => {
     const start = new Date(startDate);
     const end = new Date(endDate);
     
-    // Horaires par défaut
     const defaultSchedule = {
-      weekdays: [ // Lundi à Vendredi
+      weekdays: [
         { start: '09:00', end: '10:30' },
         { start: '10:30', end: '12:00' },
         { start: '14:00', end: '15:30' },
         { start: '15:30', end: '17:00' },
         { start: '17:00', end: '18:30' }
       ],
-      saturday: [ // Samedi
+      saturday: [
         { start: '09:00', end: '10:30' },
         { start: '10:30', end: '12:00' },
         { start: '14:00', end: '15:30' },
@@ -319,16 +380,14 @@ const generateTimeSlots = async (req, res) => {
     };
     
     for (let date = new Date(start); date <= end; date.setDate(date.getDate() + 1)) {
-      const dayOfWeek = date.getDay(); // 0=dimanche, 1=lundi, etc.
+      const dayOfWeek = date.getDay();
       
-      // Ignorer les dimanches et les jours non sélectionnés
       if (dayOfWeek === 0 || !weekDays.includes(dayOfWeek)) continue;
       
       const dateString = date.toISOString().split('T')[0];
       const schedule = dayOfWeek === 6 ? defaultSchedule.saturday : defaultSchedule.weekdays;
       
       for (const timeSlot of schedule) {
-        // Vérifier si le créneau existe déjà
         const existing = await TimeSlot.findOne({
           where: {
             date: dateString,
@@ -407,7 +466,6 @@ const updateTimeSlotAvailability = async (req, res) => {
       });
     }
     
-    // Vérifier s'il y a des réservations actives avant de désactiver
     if (!isAvailable && timeSlot.bookings && timeSlot.bookings.length > 0) {
       return res.status(400).json({
         success: false,
@@ -425,11 +483,12 @@ const updateTimeSlotAvailability = async (req, res) => {
       message: `Créneau ${isAvailable ? 'activé' : 'désactivé'} avec succès`,
       data: timeSlot
     });
+    
   } catch (error) {
     console.error('Erreur updateTimeSlotAvailability:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la mise à jour du créneau',
+      message: 'Erreur lors de la mise à jour',
       error: error.message
     });
   }
@@ -460,7 +519,6 @@ const deleteTimeSlot = async (req, res) => {
       });
     }
     
-    // Vérifier s'il y a des réservations actives
     if (timeSlot.bookings && timeSlot.bookings.length > 0) {
       return res.status(400).json({
         success: false,
@@ -477,11 +535,12 @@ const deleteTimeSlot = async (req, res) => {
       success: true,
       message: 'Créneau supprimé avec succès'
     });
+    
   } catch (error) {
     console.error('Erreur deleteTimeSlot:', error);
     res.status(500).json({
       success: false,
-      message: 'Erreur lors de la suppression du créneau',
+      message: 'Erreur lors de la suppression',
       error: error.message
     });
   }
@@ -490,17 +549,23 @@ const deleteTimeSlot = async (req, res) => {
 // Récupérer tous les créneaux (ADMIN)
 const getAllTimeSlots = async (req, res) => {
   try {
-    const { date, isAvailable, serviceId, page = 1, limit = 50 } = req.query;
+    const { date, startDate, endDate, isAvailable } = req.query;
     
     let whereConditions = {};
     
-    if (date) whereConditions.date = date;
-    if (isAvailable !== undefined) whereConditions.isAvailable = isAvailable === 'true';
-    if (serviceId) whereConditions.serviceId = serviceId;
+    if (date) {
+      whereConditions.date = date;
+    } else if (startDate && endDate) {
+      whereConditions.date = {
+        [Op.between]: [startDate, endDate]
+      };
+    }
     
-    const offset = (page - 1) * limit;
+    if (isAvailable !== undefined) {
+      whereConditions.isAvailable = isAvailable === 'true';
+    }
     
-    const { count, rows: timeSlots } = await TimeSlot.findAndCountAll({
+    const timeSlots = await TimeSlot.findAll({
       where: whereConditions,
       include: [
         {
@@ -511,49 +576,28 @@ const getAllTimeSlots = async (req, res) => {
         {
           model: Booking,
           as: 'bookings',
-          where: { status: { [Op.notIn]: ['cancelled'] } },
+          where: {
+            status: { [Op.notIn]: ['cancelled'] }
+          },
           required: false,
           include: [
             {
               model: Client,
               as: 'client',
-              attributes: ['firstName', 'lastName']
+              attributes: ['id', 'firstName', 'lastName', 'email']
             }
           ]
         }
       ],
-      order: [['date', 'ASC'], ['startTime', 'ASC']],
-      limit: parseInt(limit),
-      offset: offset
-    });
-    
-    // Enrichir les données avec des informations utiles
-    const enrichedSlots = timeSlots.map(slot => {
-      const slotData = slot.toJSON();
-      return {
-        ...slotData,
-        occupancyRate: slot.maxBookings > 0 ? (slot.currentBookings / slot.maxBookings) * 100 : 0,
-        isFull: slot.currentBookings >= slot.maxBookings,
-        bookingsDetails: slotData.bookings?.map(booking => ({
-          id: booking.id,
-          clientName: `${booking.client.firstName} ${booking.client.lastName}`,
-          duration: booking.duration,
-          status: booking.status
-        })) || []
-      };
+      order: [['date', 'ASC'], ['startTime', 'ASC']]
     });
     
     res.json({
       success: true,
-      message: 'Créneaux récupérés avec succès',
-      data: enrichedSlots,
-      pagination: {
-        totalItems: count,
-        totalPages: Math.ceil(count / limit),
-        currentPage: parseInt(page),
-        itemsPerPage: parseInt(limit)
-      }
+      data: timeSlots,
+      total: timeSlots.length
     });
+    
   } catch (error) {
     console.error('Erreur getAllTimeSlots:', error);
     res.status(500).json({
@@ -564,56 +608,42 @@ const getAllTimeSlots = async (req, res) => {
   }
 };
 
-// Obtenir les statistiques des créneaux (ADMIN)
+// Statistiques des créneaux (ADMIN)
 const getTimeSlotsStats = async (req, res) => {
   try {
-    const today = new Date().toISOString().split('T')[0];
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    const totalSlots = await TimeSlot.count();
-    const availableSlots = await TimeSlot.count({ 
-      where: { 
-        isAvailable: true,
-        date: { [Op.gte]: today }
-      } 
-    });
-    const fullyBookedSlots = await TimeSlot.count({
-      where: {
-        currentBookings: { [Op.gte]: sequelize.col('maxBookings') },
-        date: { [Op.gte]: today }
-      }
-    });
-    
-    // Créneaux les plus demandés
-    const popularSlots = await TimeSlot.findAll({
-      attributes: [
-        'startTime',
-        [sequelize.fn('COUNT', sequelize.col('bookings.id')), 'bookingCount'],
-        [sequelize.fn('AVG', sequelize.col('currentBookings')), 'avgOccupancy']
-      ],
-      include: [
-        {
-          model: Booking,
-          as: 'bookings',
-          where: { status: { [Op.in]: ['confirmed', 'completed'] } },
-          attributes: []
+    const [total, available, booked, past] = await Promise.all([
+      TimeSlot.count(),
+      TimeSlot.count({ where: { isAvailable: true } }),
+      TimeSlot.count({
+        where: {
+          currentBookings: {
+            [Op.gt]: 0
+          }
         }
-      ],
-      group: ['TimeSlot.startTime'],
-      order: [[sequelize.literal('bookingCount'), 'DESC']],
-      limit: 5
-    });
+      }),
+      TimeSlot.count({
+        where: {
+          date: {
+            [Op.lt]: today.toISOString().split('T')[0]
+          }
+        }
+      })
+    ]);
     
     res.json({
       success: true,
-      message: 'Statistiques des créneaux récupérées',
       data: {
-        total: totalSlots,
-        available: availableSlots,
-        fullyBooked: fullyBookedSlots,
-        occupancyRate: totalSlots > 0 ? ((totalSlots - availableSlots) / totalSlots * 100).toFixed(1) : 0,
-        popularTimeSlots: popularSlots
+        total,
+        available,
+        booked,
+        past,
+        upcoming: total - past
       }
     });
+    
   } catch (error) {
     console.error('Erreur getTimeSlotsStats:', error);
     res.status(500).json({

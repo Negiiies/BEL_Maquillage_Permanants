@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { User, Calendar, LogOut, Mail, Phone, Edit } from 'lucide-react'
 import { API_URL } from '@/lib/config'
+
 export default function MonComptePage() {
   const router = useRouter()
   const [user, setUser] = useState<any>(null)
@@ -19,21 +20,27 @@ export default function MonComptePage() {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/api/auth/profile', {
+        const response = await fetch(`${API_URL}/api/auth/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
         if (response.ok) {
           const data = await response.json()
           setUser(data.data)
-        } else {
+        } else if (response.status === 401) {
+          // ✅ Token invalide (401 Unauthorized) → Supprimer et rediriger
+          console.log('Token invalide, déconnexion...')
           localStorage.removeItem('clientToken')
           router.push('/auth/login')
+        } else {
+          // ⚠️ Autre erreur serveur (500, 503, etc.) → NE PAS supprimer le token
+          console.error('Erreur serveur:', response.status)
+          setUser(null)
         }
       } catch (error) {
-        console.error('Erreur:', error)
-        localStorage.removeItem('clientToken')
-        router.push('/auth/login')
+        // ⚠️ Erreur réseau/timeout → NE PAS supprimer le token
+        console.error('Erreur réseau:', error)
+        setUser(null)
       } finally {
         setLoading(false)
       }
@@ -43,24 +50,24 @@ export default function MonComptePage() {
   }, [router])
 
   const handleLogout = async () => {
-  try {
-    const token = localStorage.getItem('clientToken')
-    
-    await fetch(`${API_URL}/api/auth/logout`, {  // ✅ Changé ici
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    })
-    
-    localStorage.removeItem('clientToken')
-    window.location.href = '/'
-  } catch (error) {
-    console.error('Erreur logout:', error)
-    localStorage.removeItem('clientToken')
-    window.location.href = '/'
+    try {
+      const token = localStorage.getItem('clientToken')
+      
+      await fetch(`${API_URL}/api/auth/logout`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+      
+      localStorage.removeItem('clientToken')
+      window.location.href = '/'
+    } catch (error) {
+      console.error('Erreur logout:', error)
+      localStorage.removeItem('clientToken')
+      window.location.href = '/'
+    }
   }
-}
 
   if (loading) {
     return (
@@ -70,8 +77,32 @@ export default function MonComptePage() {
     )
   }
 
+  // ⭐ NOUVEAU : Si le user n'est pas chargé mais qu'on a un token, afficher un message
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 pt-24">
+        <div className="text-center">
+          <div className="mb-4">
+            <Calendar className="h-16 w-16 text-gray-400 mx-auto" />
+          </div>
+          <h2 className="text-xl font-medium text-gray-900 mb-2">
+            Erreur de connexion
+          </h2>
+          <p className="text-gray-600 mb-6">
+            Impossible de charger votre profil. Veuillez réessayer.
+          </p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors"
+          >
+            Rafraîchir la page
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
-    // Ajout de pt-24 (padding-top: 6rem = 96px) pour compenser la navbar (h-20 = 80px + marge)
     <div className="min-h-screen bg-gray-50 pt-24 py-12 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
