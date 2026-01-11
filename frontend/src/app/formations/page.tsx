@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Sparkles, Heart, Eye } from 'lucide-react';
@@ -11,6 +11,11 @@ export default function FormationsHomePage() {
   const [openFaq, setOpenFaq] = useState<number | null>(null);
   const [showTransition, setShowTransition] = useState(true);
   const [showContent, setShowContent] = useState(false);
+  const [formationCounts, setFormationCounts] = useState<{ [key: string]: number }>({
+    cils: 0,
+    levres: 0,
+    sourcils: 0
+  });
 
   const handleTransitionComplete = () => {
     setShowTransition(false);
@@ -18,6 +23,38 @@ export default function FormationsHomePage() {
       setShowContent(true);
     }, 300);
   };
+
+  // Charger les formations depuis l'API
+  useEffect(() => {
+    const fetchFormationCounts = async () => {
+      try {
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const response = await fetch(`${API_URL}/api/formations`);
+        
+        if (response.ok) {
+          const data = await response.json();
+          console.log('Formations récupérées:', data); // Pour debug
+          const formations = data.data || [];
+          
+          // Compter les formations par catégorie (subcategory)
+          const counts = {
+            cils: formations.filter((f: any) => f.subcategory === 'cils' && f.isActive).length,
+            levres: formations.filter((f: any) => f.subcategory === 'levres' && f.isActive).length,
+            sourcils: formations.filter((f: any) => f.subcategory === 'sourcils' && f.isActive).length
+          };
+          
+          console.log('Counts calculés:', counts); // Pour debug
+          setFormationCounts(counts);
+        } else {
+          console.error('Erreur API:', response.status);
+        }
+      } catch (error) {
+        console.error('Erreur chargement formations:', error);
+      }
+    };
+
+    fetchFormationCounts();
+  }, []);
 
   const categories = [
     {
@@ -27,11 +64,7 @@ export default function FormationsHomePage() {
       icon: Eye,
       subtitle: 'L\'art du regard',
       description: 'Maîtrisez l\'art du regard avec nos techniques avancées de rehaussement et extension de cils. Une formation complète pour sublimer chaque regard.',
-      imageUrl: '/images/cilss.JPG',
-      formationsCount: 1,
-      priceRange: '500€',
-      duration: '2 jours',
-      level: 'Tous niveaux'
+      imageUrl: '/images/cilss.jpg'
     },
     {
       id: 2,
@@ -40,11 +73,7 @@ export default function FormationsHomePage() {
       icon: Heart,
       subtitle: 'La perfection du sourire',
       description: 'L\'excellence de la pigmentation des lèvres pour un résultat naturel et durable. Apprenez les techniques du maquillage semi-permanent des lèvres.',
-      imageUrl: '/images/levres.JPG',
-      formationsCount: 1,
-      priceRange: '1500€',
-      duration: '2 jours',
-      level: 'Intermédiaire'
+      imageUrl: '/images/levres.jpg'
     },
     {
       id: 3,
@@ -53,11 +82,7 @@ export default function FormationsHomePage() {
       icon: Sparkles,
       subtitle: 'L\'élégance du visage',
       description: 'De la restructuration au maquillage permanent, devenez experte en sublimation du regard. Techniques Microblading, Ombré Brow et plus encore.',
-      imageUrl: '/images/sourcilss.JPG',
-      formationsCount: 4,
-      priceRange: '400€',
-      duration: '2 jours',
-      level: 'Débutant à expert'
+      imageUrl: '/images/sourcilss.jpg'
     }
   ];
 
@@ -137,8 +162,8 @@ export default function FormationsHomePage() {
             </div>
             <div>
               <p className="text-lg font-light leading-relaxed text-neutral-900">
-                Découvrez nos formations professionnelles certifiantes dans les domaines 
-                de la beauté du regard. Excellence technique et savoir-faire d'expertes reconnues.
+                Découvrez nos formations professionnelles qualifiantes en pigmentation et beauté du regard.
+                Des programmes conçus pour transmettre une maîtrise technique rigoureuse, des méthodes reconnues et le savoir-faire d'une experte du domaine.
               </p>
             </div>
           </div>
@@ -173,18 +198,19 @@ export default function FormationsHomePage() {
                 {/* Contenu */}
                 <div className="grid lg:grid-cols-12 gap-8 items-start">
                   
+                  {/* Image - 7 colonnes */}
                   <div className="lg:col-span-7">
-  <div className="relative aspect-[16/10] overflow-hidden bg-neutral-200 group-hover:shadow-2xl transition-shadow duration-500">
-    <img
-      src={category.imageUrl}
-      alt={category.name}
-      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-      style={{ 
-        objectPosition: category.slug === 'levres' ? 'center 60%' : 'center center' 
-      }}
-    />
-  </div>
-</div>
+                    <div className="relative aspect-[16/10] overflow-hidden bg-neutral-200 group-hover:shadow-2xl transition-shadow duration-500">
+                      <img
+                        src={category.imageUrl}
+                        alt={category.name}
+                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                        style={{ 
+                          objectPosition: category.slug === 'levres' ? 'center 60%' : 'center center' 
+                        }}
+                      />
+                    </div>
+                  </div>
 
                   {/* Texte - 5 colonnes */}
                   <div className="lg:col-span-5 space-y-6 lg:pt-4">
@@ -204,36 +230,18 @@ export default function FormationsHomePage() {
                       {category.description}
                     </p>
 
-                    {/* Infos détaillées */}
-                    <div className="grid grid-cols-3 gap-6 pt-6 border-t border-neutral-300">
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-neutral-500 mb-2">Prix</p>
-                        <p className="text-lg font-light">{category.priceRange}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-neutral-500 mb-2">Durée</p>
-                        <p className="text-lg font-light">{category.duration}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs uppercase tracking-wider text-neutral-500 mb-2">Niveau</p>
-                        <p className="text-lg font-light">{category.level}</p>
-                      </div>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center gap-6 text-sm text-neutral-600">
-                      <div className="flex items-center gap-2">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                        </svg>
-                        <span>{category.formationsCount} formation{category.formationsCount > 1 ? 's' : ''}</span>
-                      </div>
+                    {/* Stats - Nombre de formations dynamique */}
+                    <div className="flex items-center gap-2 text-sm text-neutral-600 pt-6 border-t border-neutral-300">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                      </svg>
+                      <span>{formationCounts[category.slug] || 0} formation{(formationCounts[category.slug] || 0) > 1 ? 's disponibles' : ' disponible'}</span>
                     </div>
 
                     {/* CTA */}
                     <div className="pt-4">
                       <div className="inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 group-hover:border-neutral-500 transition-colors">
-                        <span className="text-sm uppercase tracking-[0.2em]">En savoir plus</span>
+                        <span className="text-sm uppercase tracking-[0.2em]">Découvrir les formations</span>
                         <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                         </svg>
@@ -263,7 +271,7 @@ export default function FormationsHomePage() {
             </div>
             <div className="flex items-end">
               <p className="text-lg text-neutral-700 font-light leading-relaxed">
-                Des formations d'exception dispensées par des expertes reconnues. 
+                Des formations d'exception dispensées par une experte reconnue. 
                 Un cadre intimiste, des techniques avant-gardistes et un accompagnement personnalisé.
               </p>
             </div>
@@ -272,9 +280,9 @@ export default function FormationsHomePage() {
           {/* Liste horizontale */}
           <div className="grid md:grid-cols-3 gap-12">
             {[
-              { num: '01', title: 'Expertise Reconnue', desc: 'Formatrices certifiées avec plus de 10 ans d expérience' },
-              { num: '02', title: 'Petit Effectif', desc: 'Maximum 4 élèves par session pour un suivi optimal' },
-              { num: '03', title: 'Certification', desc: 'Diplôme reconnu et accompagnement post-formation' }
+              { num: '01', title: 'Expertise Reconnue', desc: 'Formatrice certifiée avec plus de 9 ans d expérience' },
+              { num: '02', title: 'Petit Effectif', desc: 'Maximum 2 élèves par session pour un suivi optimal' },
+              { num: '03', title: 'Certification', desc: 'Diplôme qualifiant et accompagnement post-formation' }
             ].map((item) => (
               <div key={item.num} className="space-y-4">
                 <div className="text-5xl font-light text-neutral-400">{item.num}</div>
@@ -292,13 +300,13 @@ export default function FormationsHomePage() {
         <div className="max-w-7xl mx-auto px-8">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {[
-              { value: '10+', label: 'Années' },
+              { value: '9+', label: 'Années' },
               { value: '200+', label: 'Élèves formées' },
               { value: '6', label: 'Formations' },
               { value: '98%', label: 'Satisfaction' }
             ].map((stat, index) => (
               <div key={index} className="text-center border-l border-neutral-300 first:border-l-0">
-                <div className="text-6xl font-light mb-2">{stat.value}</div>
+                <div className="text-6xl font-light mb-2 text-neutral-900">{stat.value}</div>
                 <p className="text-neutral-600 text-xs uppercase tracking-[0.2em]">{stat.label}</p>
               </div>
             ))}

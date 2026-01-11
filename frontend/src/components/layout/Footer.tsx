@@ -50,7 +50,7 @@ export default function FooterMinimal() {
               </div>
               <p className="text-neutral-700 leading-relaxed font-light max-w-sm">
                 L'excellence au service de votre beauté. 
-                Expertise, raffinement et savoir-faire depuis 2019.
+                Expertise en maquillage permanent, extensions de cils et soins du regard.
               </p>
               
               {/* Réseaux sociaux */}
@@ -144,22 +144,23 @@ export default function FooterMinimal() {
               <ul className="space-y-4">
                 <li>
                   <a 
-                    href="tel:+33123456789"
+                    href="tel:+33637466004"
                     className="text-neutral-700 hover:text-neutral-900 transition-colors font-light"
                   >
-                    01 23 45 67 89
+                    06 37 46 60 04
                   </a>
                 </li>
                 <li>
                   <a 
-                    href="mailto:contact@bel-institut.fr"
+                    href="mailto:bel.pmakeup@gmail.com"
                     className="text-neutral-700 hover:text-neutral-900 transition-colors font-light"
                   >
-                    contact@bel-institut.fr
+                    bel.pmakeup@gmail.com
                   </a>
                 </li>
-                <li className="text-neutral-700 font-light pt-2">
-                  Paris, France
+                <li className="text-neutral-700 font-light pt-2 leading-relaxed">
+                  59 route de la ferme du pavillon<br />
+                  77600 Chanteloup-en-Brie
                 </li>
               </ul>
               
@@ -183,7 +184,7 @@ export default function FooterMinimal() {
         <div className="max-w-7xl mx-auto px-8 py-8">
           <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0 text-xs text-neutral-600">
             <p className="font-light tracking-wide">
-              © {new Date().getFullYear()} BEL Institut de Beauté — Tous droits réservés
+              © {new Date().getFullYear()} Bel maquillage permanent — Tous droits réservés
             </p>
             
             <div className="flex items-center space-x-8">
@@ -203,7 +204,7 @@ export default function FooterMinimal() {
                 href="/cgv"
                 className="hover:text-neutral-900 transition-colors font-light tracking-wide"
               >
-                CGV
+                CGU
               </Link>
             </div>
           </div>

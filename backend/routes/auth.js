@@ -16,4 +16,17 @@ router.get('/verify', authController.verifyClientToken);
 router.get('/profile', authController.clientAuthMiddleware, authController.getClientProfile);
 router.put('/profile', authController.clientAuthMiddleware, authController.updateClientProfile);
 
+// ========================================
+// ROUTES MOT DE PASSE
+// ========================================
+
+// Mot de passe oublié (public)
+router.post('/forgot-password', authController.forgotPassword);
+
+// Réinitialiser mot de passe avec token (public)
+router.post('/reset-password', authController.resetPassword);
+
+// Changer mot de passe (authentifié)
+router.put('/change-password', authController.clientAuthMiddleware, authController.changePassword);
+
 module.exports = router;

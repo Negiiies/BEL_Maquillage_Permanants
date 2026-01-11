@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react'
 
 export default function AdminLogin() {
+  console.log('🚀 COMPOSANT LOGIN CHARGÉ!')
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -15,35 +16,52 @@ export default function AdminLogin() {
   const router = useRouter()
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
+    console.log('🔴 HANDLESUBMIT APPELÉ!')
+  e.preventDefault()
+  setLoading(true)
+  setError('')
 
-    try {
-      const response = await fetch('http://localhost:5000/api/admin/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
-      })
+  try {
+    console.log('📤 Envoi requête login...')
+    
+    const response = await fetch('http://localhost:5000/api/admin/login/step1', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    })
 
-      const data = await response.json()
+    console.log('📥 Réponse reçue, status:', response.status)
+    const data = await response.json()
+    console.log('📦 Data:', data)
 
-      if (response.ok) {
-        localStorage.setItem('adminToken', data.data.token)
-        router.push('/admin')
-      } else {
-        setError(data.message || 'Identifiants incorrects')
-      }
-    } catch (error) {
-      console.error('Erreur connexion:', error)
-      setError('Erreur de connexion au serveur')
-    } finally {
-      setLoading(false)
+    if (response.ok) {
+      console.log('✅ Réponse OK!')
+      console.log('📧 Email à stocker:', formData.email)
+      
+      // Stocker l'email
+      sessionStorage.setItem('admin2faEmail', formData.email)
+      
+      console.log('✅ Email stocké dans sessionStorage')
+      console.log('🔍 Vérification:', sessionStorage.getItem('admin2faEmail'))
+      console.log('🔄 Redirection vers /admin/verify-2fa...')
+      
+      // Redirection FORCÉE avec rechargement de page
+      window.location.href = '/admin/verify-2fa'
+      
+      console.log('⚠️ Si tu vois ce message, la redirection a échoué!')
+    } else {
+      console.log('❌ Erreur:', data.message)
+      setError(data.message || 'Identifiants incorrects')
     }
+  } catch (error) {
+    console.error('💥 Erreur connexion:', error)
+    setError('Erreur de connexion au serveur')
+  } finally {
+    setLoading(false)
   }
-
+}
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
       ...prev,
@@ -151,7 +169,7 @@ export default function AdminLogin() {
             <div className="flex items-start gap-3">
               <Lock className="w-4 h-4 text-neutral-400 mt-1 flex-shrink-0" strokeWidth={1.5} />
               <p className="text-xs text-neutral-500 font-light leading-relaxed">
-                Connexion sécurisée par chiffrement. Vos identifiants sont protégés et jamais stockés en clair.
+                Connexion sécurisée par double authentification. Un code de vérification sera envoyé par email.
               </p>
             </div>
           </div>

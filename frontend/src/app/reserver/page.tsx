@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Calendar, Clock, Check, ArrowRight, ArrowLeft, Sparkles, Heart, Eye, ChevronDown } from 'lucide-react'
 import { API_URL } from '@/lib/config'
@@ -33,7 +33,8 @@ const CATEGORY_LABELS: { [key: string]: string } = {
   'cils': 'Cils'
 }
 
-export default function ReservationPage() {
+// Composant qui utilise useSearchParams
+function ReservationContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const preSelectedServiceId = searchParams.get('service')
@@ -476,5 +477,21 @@ export default function ReservationPage() {
         )}
       </div>
     </div>
+  )
+}
+
+// Composant principal avec Suspense
+export default function ReservationPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <ReservationContent />
+    </Suspense>
   )
 }

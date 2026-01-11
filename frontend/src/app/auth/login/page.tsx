@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
+import { API_URL } from '@/lib/config'
 
 export default function ConnexionPage() {
   const router = useRouter()
@@ -30,7 +31,7 @@ export default function ConnexionPage() {
     setError('')
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -59,7 +60,9 @@ export default function ConnexionPage() {
         <div className="w-full max-w-md">
           {/* Logo */}
           <Link href="/" className="inline-block mb-8">
-            <div className="text-2xl font-bold tracking-tight">BEL</div>
+            <div className="text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-gray-600 to-gray-400 bg-clip-text text-transparent hover:from-gray-800 hover:via-gray-500 hover:to-gray-300 transition-all duration-300">
+              BEL
+            </div>
           </Link>
 
           {/* Titre */}
@@ -67,7 +70,7 @@ export default function ConnexionPage() {
             Vous avez déjà utilisé BEL ?
           </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded p-2.5 text-red-600 text-sm">
                 {error}
@@ -76,21 +79,22 @@ export default function ConnexionPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">Email *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 required
+                autoComplete="off"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
-                placeholder="Email"
+                placeholder="votre@email.com"
               />
             </div>
 
             {/* Mot de passe */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">Mot de passe *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">Mot de passe</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -98,8 +102,9 @@ export default function ConnexionPage() {
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  autoComplete="off"
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
-                  placeholder="Mot de passe"
+                  placeholder="Votre mot de passe"
                 />
                 <button
                   type="button"
@@ -111,9 +116,12 @@ export default function ConnexionPage() {
               </div>
             </div>
 
-            {/* Mot de passe oublié */}
-            <div className="text-right">
-              <Link href="/mot-de-passe-oublie" className="text-sm text-gray-700 hover:underline">
+            {/* ⭐ MOT DE PASSE OUBLIÉ - LIEN CORRIGÉ */}
+            <div className="flex items-center justify-end">
+              <Link 
+                href="/auth/forgot-password" 
+                className="text-sm text-gray-600 hover:text-gray-900 hover:underline"
+              >
                 Mot de passe oublié ?
               </Link>
             </div>
@@ -150,15 +158,6 @@ export default function ConnexionPage() {
               </Link>
             </div>
           </form>
-
-          {/* Compte de test */}
-          <div className="mt-8 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-blue-700 text-xs">
-              <strong>Compte de test :</strong><br />
-              Email: marie.martin@email.com<br />
-              Mot de passe: client123
-            </p>
-          </div>
         </div>
       </div>
 

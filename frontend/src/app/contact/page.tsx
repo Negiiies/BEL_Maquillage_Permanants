@@ -144,8 +144,7 @@ export default function ContactPage() {
                       </div>
                       <div>
                         <h3 className="text-lg font-light text-neutral-900 mb-2">Téléphone</h3>
-                        <p className="text-neutral-700 font-light">01 23 45 67 89</p>
-                        <p className="text-sm text-neutral-600 mt-1 font-light">Lun - Ven : 9h - 18h</p>
+                        <p className="text-neutral-700 font-light">06 37 46 60 04</p>
                       </div>
                     </div>
 
@@ -156,8 +155,7 @@ export default function ContactPage() {
                       </div>
                       <div>
                         <h3 className="text-lg font-light text-neutral-900 mb-2">Email</h3>
-                        <p className="text-neutral-700 font-light">contact@bel-institut.fr</p>
-                        <p className="text-sm text-neutral-600 mt-1 font-light">Réponse sous 24h</p>
+                        <p className="text-neutral-700 font-light">bel.pmakeup@gmail.com</p>
                       </div>
                     </div>
 
@@ -175,20 +173,6 @@ export default function ContactPage() {
                       </div>
                     </div>
 
-                    {/* Horaires */}
-                    <div className="flex items-start space-x-6">
-                      <div className="w-12 h-12 border border-neutral-300 flex items-center justify-center flex-shrink-0">
-                        <Clock className="h-5 w-5 text-neutral-900" strokeWidth={1.5} />
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-light text-neutral-900 mb-3">Horaires</h3>
-                        <div className="text-neutral-700 font-light space-y-1">
-                          <p>Lundi - Vendredi : 9h - 18h</p>
-                          <p>Samedi : 9h - 16h</p>
-                          <p className="text-sm text-neutral-600 pt-1">Dimanche : Fermé</p>
-                        </div>
-                      </div>
-                    </div>
                   </div>
 
                   {/* Citation */}

@@ -79,7 +79,7 @@ export default function FormationsCilsPage() {
             playsInline
             className="w-full h-full object-cover opacity-40"
           >
-            <source src="/videos/hero-formations.mp4" type="video/mp4" />
+            <source src="/videos/formation.mp4" type="video/mp4" />
           </video>
         </div>
 

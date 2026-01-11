@@ -1,0 +1,94 @@
+# ===============================================
+# .gitignore - BEL Institut de Beauté (RACINE)
+# ===============================================
+
+# ================================
+# FICHIERS SENSIBLES - CRITIQUE
+# ================================
+.env
+.env.local
+.env.production
+.env.development
+*.env
+
+# ================================
+# NODE.JS & DÉPENDANCES
+# ================================
+node_modules/
+*/node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+
+# ================================
+# BACKEND
+# ================================
+backend/logs/
+backend/public/uploads/
+backend/config/config.json
+
+# ================================
+# FRONTEND
+# ================================
+frontend/.next/
+frontend/out/
+frontend/build/
+frontend/public/videos/*.mp4
+
+# ================================
+# DOCKER
+# ================================
+docker-compose.override.yml
+
+# Volumes Docker (données persistantes)
+mysql_data/
+backend_uploads/
+backend_logs/
+
+# ================================
+# LOGS
+# ================================
+logs/
+*.log
+
+# ================================
+# BUILD & CACHE
+# ================================
+.next/
+out/
+build/
+dist/
+.cache/
+coverage/
+
+# ================================
+# SYSTÈME & IDE
+# ================================
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# ================================
+# CERTIFICATS & CLÉS
+# ================================
+*.pem
+*.key
+*.crt
+*.cert
+
+# ================================
+# BACKUPS & DUMPS
+# ================================
+*.sql
+*.sql.gz
+*.dump
+backup/
+dumps/

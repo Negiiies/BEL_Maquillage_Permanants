@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff } from 'lucide-react'
+import { API_URL } from '@/lib/config'
 
 export default function InscriptionPage() {
   const router = useRouter()
@@ -18,13 +19,15 @@ export default function InscriptionPage() {
     phone: '',
     dateOfBirth: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    acceptTerms: false  // ✅ AJOUTÉ : État de la checkbox
   })
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type, checked } = e.target
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [name]: type === 'checkbox' ? checked : value
     }))
     setError('')
   }
@@ -33,6 +36,13 @@ export default function InscriptionPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
+
+    // ✅ VALIDATION : Vérifier que la checkbox est cochée
+    if (!formData.acceptTerms) {
+      setError('Vous devez accepter les Conditions Générales d\'Utilisation')
+      setLoading(false)
+      return
+    }
 
     if (formData.password !== formData.confirmPassword) {
       setError('Les mots de passe ne correspondent pas')
@@ -47,7 +57,7 @@ export default function InscriptionPage() {
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -81,9 +91,11 @@ export default function InscriptionPage() {
       {/* Partie gauche - Formulaire */}
       <div className="w-full lg:w-1/2 flex items-center justify-center p-6 bg-white overflow-y-auto">
         <div className="w-full max-w-md py-8">
-          {/* Logo */}
-          <Link href="/" className="inline-block mb-6">
-            <div className="text-2xl font-bold tracking-tight">BEL</div>
+          {/* Logo - Version améliorée avec gradient */}
+          <Link href="/" className="inline-block mb-8">
+            <div className="text-4xl font-bold tracking-tight bg-gradient-to-r from-gray-900 via-gray-600 to-gray-400 bg-clip-text text-transparent hover:from-gray-800 hover:via-gray-500 hover:to-gray-300 transition-all duration-300">
+              BEL
+            </div>
           </Link>
 
           {/* Titre */}
@@ -91,7 +103,7 @@ export default function InscriptionPage() {
             Nouveau sur BEL ?
           </h1>
 
-          <form onSubmit={handleSubmit} className="space-y-3.5">
+          <form onSubmit={handleSubmit} className="space-y-3.5" autoComplete="off">
             {error && (
               <div className="bg-red-50 border border-red-200 rounded p-2.5 text-red-600 text-sm">
                 {error}
@@ -101,25 +113,27 @@ export default function InscriptionPage() {
             {/* Prénom et Nom */}
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Prénom *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Prénom</label>
                 <input
                   type="text"
                   name="firstName"
                   value={formData.firstName}
                   onChange={handleChange}
                   required
+                  autoComplete="given-name"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
                   placeholder="Prénom"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Nom *</label>
+                <label className="block text-sm font-medium text-gray-900 mb-1">Nom</label>
                 <input
                   type="text"
                   name="lastName"
                   value={formData.lastName}
                   onChange={handleChange}
                   required
+                  autoComplete="family-name"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
                   placeholder="Nom"
                 />
@@ -128,15 +142,16 @@ export default function InscriptionPage() {
 
             {/* Email */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">Email *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">Email</label>
               <input
                 type="email"
                 name="email"
                 value={formData.email}
                 onChange={handleChange}
                 required
+                autoComplete="email"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
-                placeholder="Email"
+                placeholder="votre@email.com"
               />
             </div>
 
@@ -149,6 +164,7 @@ export default function InscriptionPage() {
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
+                  autoComplete="tel"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
                   placeholder="06 12 34 56 78"
                 />
@@ -160,6 +176,7 @@ export default function InscriptionPage() {
                   name="dateOfBirth"
                   value={formData.dateOfBirth}
                   onChange={handleChange}
+                  autoComplete="bday"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
                 />
               </div>
@@ -167,7 +184,7 @@ export default function InscriptionPage() {
 
             {/* Mot de passe */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">Mot de passe *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">Mot de passe</label>
               <div className="relative">
                 <input
                   type={showPassword ? 'text' : 'password'}
@@ -175,8 +192,9 @@ export default function InscriptionPage() {
                   value={formData.password}
                   onChange={handleChange}
                   required
+                  autoComplete="new-password"
                   className="w-full px-3 py-2 pr-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
-                  placeholder="Mot de passe"
+                  placeholder="Min. 8 caractères"
                 />
                 <button
                   type="button"
@@ -190,16 +208,48 @@ export default function InscriptionPage() {
 
             {/* Confirmation mot de passe */}
             <div>
-              <label className="block text-sm font-medium text-gray-900 mb-1">Confirmer *</label>
+              <label className="block text-sm font-medium text-gray-900 mb-1">Confirmer le mot de passe</label>
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="confirmPassword"
                 value={formData.confirmPassword}
                 onChange={handleChange}
                 required
+                autoComplete="new-password"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-gray-900"
-                placeholder="Confirmer"
+                placeholder="Retaper le mot de passe"
               />
+            </div>
+
+            {/* ✅ CHECKBOX CGU - NOUVEAU */}
+            <div className="pt-2 pb-1">
+              <label className="flex items-start space-x-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  name="acceptTerms"
+                  checked={formData.acceptTerms}
+                  onChange={handleChange}
+                  className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-2 focus:ring-black cursor-pointer"
+                />
+                <span className="text-sm text-gray-700 leading-relaxed">
+                  J'accepte les{' '}
+                  <Link 
+                    href="/cgv" 
+                    target="_blank"
+                    className="text-black font-medium hover:underline"
+                  >
+                    Conditions Générales d'Utilisation
+                  </Link>
+                  {' '}et la{' '}
+                  <Link 
+                    href="/politique-confidentialite" 
+                    target="_blank"
+                    className="text-black font-medium hover:underline"
+                  >
+                    Politique de confidentialité
+                  </Link>
+                </span>
+              </label>
             </div>
 
             {/* Bouton submit */}

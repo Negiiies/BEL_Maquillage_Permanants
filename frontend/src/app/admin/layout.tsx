@@ -30,8 +30,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Ne pas vérifier pour la page login
-    if (pathname === '/admin/login') {
+    // Ne pas vérifier pour les pages login et verify-2fa
+    if (pathname === '/admin/login' || pathname === '/admin/verify-2fa') {
       setLoading(false)
       return
     }
@@ -99,8 +99,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { name: 'Paramètres', href: '/admin/settings', icon: Settings },
   ]
 
-  // Ne pas afficher le layout pour la page login
-  if (pathname === '/admin/login') {
+  // Ne pas afficher le layout pour les pages login et verify-2fa
+  if (pathname === '/admin/login' || pathname === '/admin/verify-2fa') {
     return <>{children}</>
   }
 

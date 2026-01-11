@@ -122,7 +122,7 @@ export default function PrestationsPage() {
                 </div>
                 <div>
                   <p className="text-lg font-light leading-relaxed text-neutral-900">
-                    Découvrez nos prestations de maquillage permanent et extensions de cils. 
+                    Découvrez nos prestations de maquillage permanent et beauté du regard. 
                     Un savoir-faire unique pour sublimer votre beauté naturelle avec élégance.
                   </p>
                 </div>

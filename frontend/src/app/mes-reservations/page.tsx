@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Calendar, Clock, MapPin, Phone, Mail, X, CheckCircle } from 'lucide-react'
@@ -24,7 +24,8 @@ interface Booking {
   }
 }
 
-export default function MesReservationsPage() {
+// Composant qui utilise useSearchParams
+function MesReservationsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [bookings, setBookings] = useState<Booking[]>([])
@@ -158,7 +159,7 @@ export default function MesReservationsPage() {
             </Link>
           </div>
           <p className="text-gray-600 text-sm">
-            Retrouvez l'historique de vos rendez-vous chez BEL Institut
+            Retrouvez l&apos;historique de vos rendez-vous chez BEL Institut
           </p>
         </div>
 
@@ -170,7 +171,7 @@ export default function MesReservationsPage() {
               Aucune réservation
             </h3>
             <p className="text-gray-600 mb-6">
-              Vous n'avez pas encore de rendez-vous. Réservez votre première prestation !
+              Vous n&apos;avez pas encore de rendez-vous. Réservez votre première prestation !
             </p>
             <Link
               href="/reserver"
@@ -232,7 +233,7 @@ export default function MesReservationsPage() {
                 {booking.clientNotes && (
                   <div className="py-3 border-t border-gray-100">
                     <p className="text-sm text-gray-600 mb-1">Vos remarques :</p>
-                    <p className="text-sm text-gray-900 italic">"{booking.clientNotes}"</p>
+                    <p className="text-sm text-gray-900 italic">&quot;{booking.clientNotes}&quot;</p>
                   </div>
                 )}
 
@@ -254,7 +255,7 @@ export default function MesReservationsPage() {
 
         {/* Informations de contact */}
         <div className="bg-white rounded-lg shadow-sm p-6 mt-6">
-          <h3 className="font-semibold text-gray-900 mb-4">Besoin d'aide ?</h3>
+          <h3 className="font-semibold text-gray-900 mb-4">Besoin d&apos;aide ?</h3>
           <div className="space-y-3 text-sm">
             <div className="flex items-center space-x-3">
               <MapPin className="h-5 w-5 text-gray-400" />
@@ -272,5 +273,21 @@ export default function MesReservationsPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+// Composant principal avec Suspense
+export default function MesReservationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
+      </div>
+    }>
+      <MesReservationsContent />
+    </Suspense>
   )
 }

@@ -10,9 +10,17 @@ const contactController = require('../controllers/contactController');
 // ================================
 // ROUTES PUBLIQUES (authentification admin)
 // ================================
-router.post('/login', adminController.loginAdmin);
+// Routes 2FA
+router.post('/login/step1', adminController.loginAdminStep1);
+router.post('/login/verify', adminController.verifyTwoFactorCode);
+router.post('/login/resend', adminController.resendTwoFactorCode);
 router.post('/logout', adminController.logoutAdmin);
-router.post('/setup', adminController.createAdmin);
+
+// Setup admin (UNIQUEMENT en développement)
+if (process.env.NODE_ENV !== 'production') {
+  router.post('/setup', adminController.createAdmin);
+}
+
 router.get('/verify', adminController.verifyAdminToken);
 
 // ================================

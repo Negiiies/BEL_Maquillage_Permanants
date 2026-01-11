@@ -14,6 +14,18 @@ export default function Home() {
   const [showTransition, setShowTransition] = useState(true)
   const [showContent, setShowContent] = useState(false)
   const [parallaxOffset, setParallaxOffset] = useState(0)
+  const [isMobile, setIsMobile] = useState(false)
+
+  // Détection mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   const handleTransitionComplete = () => {
     setShowTransition(false)
@@ -49,26 +61,24 @@ export default function Home() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Intersection Observer pour les animations au scroll - optimisé
+  // Intersection Observer pour les animations au scroll - simplifié
   useEffect(() => {
     if (!showContent) return
 
     const observerOptions = {
-      threshold: 0.15,
-      rootMargin: '0px 0px -50px 0px'
+      threshold: 0.1,
+      rootMargin: '0px'
     }
 
     const observer = new IntersectionObserver((entries) => {
       entries.forEach((entry) => {
         if (entry.isIntersecting) {
           entry.target.classList.add('animate-in')
-          // Observer une seule fois puis arrêter d'observer
           observer.unobserve(entry.target)
         }
       })
     }, observerOptions)
 
-    // Petit délai pour s'assurer que le DOM est prêt
     const timer = setTimeout(() => {
       const elements = document.querySelectorAll('.animate-on-scroll')
       elements.forEach((el) => observer.observe(el))
@@ -81,21 +91,21 @@ export default function Home() {
   }, [showContent])
 
   const handleMouseEnter = async (videoRef: React.RefObject<HTMLVideoElement | null>, setPlaying: (playing: boolean) => void) => {
-    if (videoRef.current) {
-      try {
-        await videoRef.current.play()
-        setPlaying(true)
-      } catch (error) {
-        console.log('Erreur lecture vidéo:', error)
-      }
+    if (isMobile || !videoRef.current) return
+    
+    try {
+      await videoRef.current.play()
+      setPlaying(true)
+    } catch (error) {
+      console.log('Erreur lecture vidéo:', error)
     }
   }
 
   const handleMouseLeave = (videoRef: React.RefObject<HTMLVideoElement | null>, setPlaying: (playing: boolean) => void) => {
-    if (videoRef.current) {
-      videoRef.current.pause()
-      setPlaying(false)
-    }
+    if (isMobile || !videoRef.current) return
+    
+    videoRef.current.pause()
+    setPlaying(false)
   }
 
   return (
@@ -112,24 +122,35 @@ export default function Home() {
         {/* HERO SECTION AVEC 2 VIDÉOS */}
         <section className="h-screen relative overflow-hidden">
           <div className="flex h-full">
-            {/* Vidéo Prestations */}
+            {/* Vidéo/Image Prestations */}
             <div 
               className="relative flex-1 group cursor-pointer"
               onMouseEnter={() => handleMouseEnter(leftVideoRef, setLeftVideoPlaying)}
               onMouseLeave={() => handleMouseLeave(leftVideoRef, setLeftVideoPlaying)}
             >
               <div className="absolute inset-0 overflow-hidden">
-                <video
-                  ref={leftVideoRef}
-                  className="absolute inset-0 w-full h-full object-cover transition-all duration-700 filter blur-sm group-hover:blur-none group-hover:scale-105"
-                  style={{ objectPosition: 'center 40%' }}
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                >
-                  <source src="/videos/FOR.mp4" type="video/mp4" />
-                </video>
+                {isMobile ? (
+                  // Image statique sur mobile
+                  <img
+                    src="/videos/FOR-poster.jpg"
+                    alt="Nos Prestations"
+                    className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
+                    style={{ objectPosition: 'center 40%' }}
+                  />
+                ) : (
+                  // Vidéo sur desktop - SANS poster, AVEC blur
+                  <video
+                    ref={leftVideoRef}
+                    className="absolute inset-0 w-full h-full object-cover transition-all duration-700 filter blur-sm group-hover:blur-none group-hover:scale-105"
+                    style={{ objectPosition: 'center 40%' }}
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                  >
+                    <source src="/videos/FOR.mp4" type="video/mp4" />
+                  </video>
+                )}
               </div>
               
               <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60 group-hover:from-black/20 group-hover:via-black/10 group-hover:to-black/40 transition-all duration-500"></div>
@@ -141,7 +162,7 @@ export default function Home() {
                   </h1>
                   <div className="w-8 h-px bg-white opacity-60 mb-4"></div>
                   <Link href="/prestations">
-                    <button className="text-xs md:text-sm font-medium tracking-wider uppercase opacity-90 hover:opacity-100 transition-opacity underline underline-offset-4 font-sans">
+                    <button className="text-xs md:text-sm font-medium tracking-wider uppercase opacity-90 hover:opacity-100 transition-opacity underline underline-offset-4 font-sans text-white">
                       Découvrir
                     </button>
                   </Link>
@@ -149,24 +170,35 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Vidéo Formations */}
+            {/* Vidéo/Image Formations */}
             <div 
               className="relative flex-1 group cursor-pointer"
               onMouseEnter={() => handleMouseEnter(rightVideoRef, setRightVideoPlaying)}
               onMouseLeave={() => handleMouseLeave(rightVideoRef, setRightVideoPlaying)}
             >
               <div className="absolute inset-0 overflow-hidden">
-                <video
-                  ref={rightVideoRef}
-                  className="absolute inset-0 w-full h-full object-cover transition-all duration-700 filter blur-sm group-hover:blur-none group-hover:scale-105"
-                  style={{ objectPosition: 'center 40%' }}
-                  muted
-                  loop
-                  playsInline
-                  preload="metadata"
-                >
-                  <source src="/videos/PR.mp4" type="video/mp4" />
-                </video>
+                {isMobile ? (
+                  // Image statique sur mobile
+                  <img
+                    src="/videos/PR-poster.jpg"
+                    alt="Nos Formations"
+                    className="absolute inset-0 w-full h-full object-cover transition-all duration-700"
+                    style={{ objectPosition: 'center 40%' }}
+                  />
+                ) : (
+                  // Vidéo sur desktop - SANS poster, AVEC blur
+                  <video
+                    ref={rightVideoRef}
+                    className="absolute inset-0 w-full h-full object-cover transition-all duration-700 filter blur-sm group-hover:blur-none group-hover:scale-105"
+                    style={{ objectPosition: 'center 40%' }}
+                    muted
+                    loop
+                    playsInline
+                    preload="auto"
+                  >
+                    <source src="/videos/PR.mp4" type="video/mp4" />
+                  </video>
+                )}
               </div>
               
               <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/60 group-hover:from-black/20 group-hover:via-black/10 group-hover:to-black/40 transition-all duration-500"></div>
@@ -178,7 +210,7 @@ export default function Home() {
                   </h1>
                   <div className="w-8 h-px bg-white opacity-60 mb-4"></div>
                   <Link href="/formations">
-                    <button className="text-xs md:text-sm font-medium tracking-wider uppercase opacity-90 hover:opacity-100 transition-opacity underline underline-offset-4 font-sans">
+                    <button className="text-xs md:text-sm font-medium tracking-wider uppercase opacity-90 hover:opacity-100 transition-opacity underline underline-offset-4 font-sans text-white">
                       Découvrir
                     </button>
                   </Link>
@@ -200,11 +232,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* SECTION ÉDITORIALE MAGAZINE AVEC ANIMATIONS */}
+        {/* SECTION ÉDITORIALE MAGAZINE */}
         <section className="min-h-screen bg-[#FAF7F2] py-32 px-8 font-serif">
           <div className="max-w-7xl mx-auto">
             
-            <div className="text-center mb-20 animate-on-scroll opacity-0 translate-y-8">
+            <div className="text-center mb-20 animate-on-scroll">
               <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
               <p className="text-xs uppercase tracking-[0.3em] text-neutral-600 mb-6">
                 BEL Institut de Beauté
@@ -220,10 +252,10 @@ export default function Home() {
 
             <div className="grid md:grid-cols-2 gap-16 items-start max-w-6xl mx-auto">
               
-              <div className="space-y-8 animate-on-scroll opacity-0 -translate-x-8">
+              <div className="space-y-8 animate-on-scroll">
                 <div className="aspect-[3/4] bg-neutral-200 overflow-hidden group">
                   <img 
-                    src="/images/deux.JPG" 
+                    src="/images/deux.jpg" 
                     alt="L'Art de la Beauté"
                     className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                   />
@@ -236,10 +268,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="space-y-12 animate-on-scroll opacity-0 translate-x-8">
+              <div className="space-y-12 animate-on-scroll">
                 <div className="space-y-6">
-                  <div className="text-7xl font-light text-neutral-400 leading-none">01</div>
-                  <h3 className="text-3xl font-light border-b border-neutral-300 pb-4">
+                  <div className="text-7xl font-light text-neutral-600 leading-none">01</div>
+                  <h3 className="text-3xl font-light border-b border-neutral-300 pb-4 text-neutral-900">
                     Notre Philosophie
                   </h3>
                   <p className="text-neutral-800 font-light leading-relaxed">
@@ -254,7 +286,7 @@ export default function Home() {
 
                 <div className="aspect-video bg-neutral-200 overflow-hidden group">
                   <img 
-                    src="/images/Carole.JPG" 
+                    src="/images/cadre.jpg" 
                     alt="Expertise BEL"
                     className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                   />
@@ -271,15 +303,15 @@ export default function Home() {
 
                 <div className="grid grid-cols-3 gap-8 border-t border-neutral-300 pt-8">
                   <div className="text-center">
-                    <div className="text-4xl font-light mb-2">5+</div>
+                    <div className="text-4xl font-light mb-2 text-neutral-900">9+</div>
                     <p className="text-xs uppercase tracking-wider text-neutral-700">Années</p>
                   </div>
                   <div className="text-center border-l border-neutral-300">
-                    <div className="text-4xl font-light mb-2">500+</div>
+                    <div className="text-4xl font-light mb-2 text-neutral-900">200+</div>
                     <p className="text-xs uppercase tracking-wider text-neutral-700">Clientes</p>
                   </div>
                   <div className="text-center border-l border-neutral-300">
-                    <div className="text-4xl font-light mb-2">98%</div>
+                    <div className="text-4xl font-light mb-2 text-neutral-900">98%</div>
                     <p className="text-xs uppercase tracking-wider text-neutral-700">Satisfaction</p>
                   </div>
                 </div>
@@ -289,28 +321,28 @@ export default function Home() {
           </div>
         </section>
 
-        {/* POURQUOI BEL - AVEC ANIMATIONS */}
+        {/* POURQUOI BEL */}
         <section className="py-32 bg-white border-t border-neutral-300 font-serif">
           <div className="max-w-7xl mx-auto px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               
-              <div className="relative animate-on-scroll opacity-0 -translate-x-8">
+              <div className="relative animate-on-scroll">
                 <div className="aspect-[4/5] overflow-hidden group">
                   <img 
-                    src="/images/trois.JPG" 
+                    src="/images/trois.jpg" 
                     alt="BEL Institut"
                     className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                   />
                 </div>
                 <div className="absolute -bottom-6 -right-6 bg-[#FAF7F2] border border-neutral-300 p-8 shadow-lg">
                   <div className="text-center">
-                    <div className="text-5xl font-light text-neutral-900">5+</div>
+                    <div className="text-5xl font-light text-neutral-900">9+</div>
                     <div className="text-sm text-neutral-700 mt-2 tracking-wider">Années d'expertise</div>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-8 animate-on-scroll opacity-0 translate-x-8">
+              <div className="space-y-8 animate-on-scroll">
                 <div className="w-12 h-[1px] bg-neutral-900 mb-8"></div>
                 <p className="text-xs tracking-[0.3em] uppercase text-neutral-600">
                   Pourquoi choisir BEL ?
@@ -328,21 +360,21 @@ export default function Home() {
                 <div className="space-y-4 pt-6">
                   <div className="flex items-start space-x-4 group">
                     <div className="w-8 h-[1px] bg-neutral-400 mt-3 transition-all duration-300 group-hover:w-12"></div>
-                    <span className="text-neutral-800 font-light">Soin minutieux et personnalisé</span>
+                    <span className="text-neutral-800 font-light">L'art du détail au service de votre regard</span>
                   </div>
                   <div className="flex items-start space-x-4 group">
                     <div className="w-8 h-[1px] bg-neutral-400 mt-3 transition-all duration-300 group-hover:w-12"></div>
-                    <span className="text-neutral-800 font-light">Équipe experte et passionnée</span>
+                    <span className="text-neutral-800 font-light">Spécialistes du maquillage permanent</span>
                   </div>
                   <div className="flex items-start space-x-4 group">
                     <div className="w-8 h-[1px] bg-neutral-400 mt-3 transition-all duration-300 group-hover:w-12"></div>
-                    <span className="text-neutral-800 font-light">Produits respectueux de votre bien-être</span>
+                    <span className="text-neutral-800 font-light">Produits premium, respectueux de la peau</span>
                   </div>
                 </div>
 
                 <div className="pt-8">
                   <Link href="/prestations">
-                    <button className="group inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 hover:border-neutral-500 transition-colors text-sm uppercase tracking-[0.2em]">
+                    <button className="group inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 hover:border-neutral-500 transition-colors text-sm uppercase tracking-[0.2em] text-neutral-900">
                       <span>Nos Prestations</span>
                       <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -355,11 +387,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* SERVICES - AVEC ANIMATIONS */}
+        {/* SERVICES */}
         <section className="py-32 bg-[#FAF7F2] border-t border-neutral-300 font-serif">
           <div className="max-w-7xl mx-auto px-8">
             
-            <div className="text-center mb-20 animate-on-scroll opacity-0 translate-y-8">
+            <div className="text-center mb-20 animate-on-scroll">
               <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
               <h2 className="text-5xl md:text-6xl font-light text-neutral-900 mb-8">
                 Découvrez nos Services
@@ -372,10 +404,10 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-16 max-w-6xl mx-auto">
               
-              <div className="text-center group animate-on-scroll opacity-0 translate-y-8" style={{ transitionDelay: '100ms' }}>
+              <div className="text-center group animate-on-scroll">
                 <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
                   <img 
-                    src="/images/sourcilss.JPG" 
+                    src="/images/sourcilss.jpg" 
                     alt="Sourcils"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
@@ -386,15 +418,15 @@ export default function Home() {
                 <p className="text-neutral-800 mb-6 leading-relaxed font-light">
                   Redéfinissez vos sourcils pour un regard structuré et harmonieux avec nos techniques précises.
                 </p>
-                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
+                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors text-neutral-900">
                   Découvrir
                 </button>
               </div>
 
-              <div className="text-center group animate-on-scroll opacity-0 translate-y-8" style={{ transitionDelay: '200ms' }}>
+              <div className="text-center group animate-on-scroll">
                 <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
                   <img 
-                    src="/images/cilss.JPG" 
+                    src="/images/presta_cils.jpg" 
                     alt="Cils"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
@@ -403,17 +435,17 @@ export default function Home() {
                   CILS
                 </h3>
                 <p className="text-neutral-800 mb-6 leading-relaxed font-light">
-                  Sublimez votre regard avec nos extensions et rehaussements de cils pour un effet spectaculaire.
+                  Sublimez votre regard avec nos rehaussements de cils coréen pour un effet spectaculaire.
                 </p>
-                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
+                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors text-neutral-900">
                   Découvrir
                 </button>
               </div>
 
-              <div className="text-center group animate-on-scroll opacity-0 translate-y-8" style={{ transitionDelay: '300ms' }}>
+              <div className="text-center group animate-on-scroll">
                 <div className="aspect-square overflow-hidden mb-8 bg-neutral-200">
                   <img 
-                    src="/images/levres.JPG" 
+                    src="/images/presta_levres.jpg" 
                     alt="Lèvres"
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
@@ -424,7 +456,7 @@ export default function Home() {
                 <p className="text-neutral-800 mb-6 leading-relaxed font-light">
                   Révélez la beauté de vos lèvres avec notre expertise en maquillage permanent pour un sourire éclatant.
                 </p>
-                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors">
+                <button className="text-sm tracking-wider uppercase border-b-2 border-neutral-900 pb-1 hover:border-neutral-500 transition-colors text-neutral-900">
                   Découvrir
                 </button>
               </div>
@@ -439,7 +471,7 @@ export default function Home() {
         >
           <div className="absolute inset-0">
             <img 
-              src="/images/Bel.JPG" 
+              src="/images/Bel.jpg" 
               alt="Prenons soin de vous"
               className="w-full h-full object-cover will-change-transform"
               style={{
@@ -450,27 +482,27 @@ export default function Home() {
             <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-black/40 to-black/50"></div>
           </div>
           
-          <div className="relative z-10 text-center text-white px-4 font-serif animate-on-scroll opacity-0 scale-95">
+          <div className="relative z-10 text-center text-white px-4 font-serif animate-on-scroll">
             <p className="text-sm tracking-[0.3em] uppercase mb-4 opacity-90">
               Prenons soin de vous...
             </p>
             <h2 className="text-4xl md:text-5xl lg:text-6xl font-light mb-6 max-w-4xl mx-auto leading-tight">
               Redécouvrez votre beauté naturelle
             </h2>
-            <Link href="/contact">
+            <Link href="/reserver">
               <button className="mt-8 px-12 py-5 border-2 border-white text-white text-sm tracking-wider uppercase hover:bg-white hover:text-gray-900 transition-all duration-300">
-                Réserver un Soin
+                Réserver une prestation 
               </button>
             </Link>
           </div>
         </section>
 
-        {/* À PROPOS - AVEC ANIMATIONS */}
+        {/* À PROPOS */}
         <section className="py-32 bg-white border-t border-neutral-300 font-serif">
           <div className="max-w-7xl mx-auto px-8">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
               
-              <div className="space-y-8 lg:pr-12 animate-on-scroll opacity-0 -translate-x-8">
+              <div className="space-y-8 lg:pr-12 animate-on-scroll">
                 <div className="w-12 h-[1px] bg-neutral-900 mb-8"></div>
                 <p className="text-xs tracking-[0.3em] uppercase text-neutral-600">
                   À propos de moi
@@ -482,22 +514,21 @@ export default function Home() {
 
                 <div className="space-y-6 text-neutral-800 leading-relaxed border-l-2 border-neutral-900 pl-8 font-light">
                   <p>
-                    Fondatrice de BEL maquillage permanent, spécialisée dans le bien-être et la beauté.
+                   Je m'appelle Carole, fondatrice de BEL Institut. Depuis plus de 9 ans, je sublime le visage grâce à la pigmentation des sourcils et des lèvres et à la beauté du regard, avec une approche précise, douce et sur mesure.
+
                   </p>
                   <p>
-                    Mon objectif est de vous accompagner pour révéler le meilleur de vous-même. 
-                    Chaque soin est une expérience unique, pensée pour sublimer votre beauté naturelle.
+                    Perfectionniste et passionnée, je me suis formée à l'international (Canada, Vietnam, Corée du Sud) afin de vous proposer des techniques innovantes et des résultats raffinés, durables et naturels.
                   </p>
                   <p>
-                    C'est un voyage sensoriel qui redéfinit votre perception de la beauté, vous permettant 
-                    de vous reconnecter à vous-même et de rayonner pleinement.
+                    Chez BEL Institut, chaque prestation est pensée comme une expérience personnalisée, dans une ambiance bienveillante, où exigence et passion se rencontrent.
                   </p>
                 </div>
 
                 <div className="pt-8">
-                  <Link href="/contact">
-                    <button className="inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 hover:border-neutral-500 transition-colors text-sm uppercase tracking-[0.2em] group">
-                      <span>Réservez votre soin</span>
+                  <Link href="/reserver">
+                    <button className="inline-flex items-center gap-3 border-b-2 border-neutral-900 pb-2 hover:border-neutral-500 transition-colors text-sm uppercase tracking-[0.2em] group text-neutral-900">
+                      <span>Réservez votre prestation</span>
                       <svg className="w-5 h-5 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                       </svg>
@@ -506,10 +537,10 @@ export default function Home() {
                 </div>
               </div>
 
-              <div className="relative animate-on-scroll opacity-0 translate-x-8">
+              <div className="relative animate-on-scroll">
                 <div className="aspect-[4/5] overflow-hidden group">
                   <img 
-                    src="/images/quatre.JPG" 
+                    src="/images/quatre.jpg" 
                     alt="Carole - Fondatrice"
                     className="w-full h-full object-cover transform transition-transform duration-700 group-hover:scale-105"
                     style={{ objectPosition: 'center 20%' }}
@@ -520,11 +551,11 @@ export default function Home() {
           </div>
         </section>
 
-        {/* TÉMOIGNAGES - AVEC ANIMATIONS */}
+        {/* TÉMOIGNAGES */}
         <section className="py-32 bg-[#FAF7F2] border-t border-neutral-300 font-serif">
           <div className="max-w-7xl mx-auto px-8">
             
-            <div className="text-center mb-20 animate-on-scroll opacity-0 translate-y-8">
+            <div className="text-center mb-20 animate-on-scroll">
               <div className="w-12 h-[1px] bg-neutral-900 mx-auto mb-8"></div>
               <p className="text-xs tracking-[0.3em] uppercase text-neutral-600 mb-6">
                 Témoignages
@@ -540,17 +571,16 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               
               {[
-                { name: 'Manon Hans', initial: 'M', color: 'bg-purple-200', text: 'Magnifique prestation de rehaussement de cils coréen + teinture. Le résultat est incroyable. Carole est super sympa!', delay: '100ms' },
-                { name: 'Marion mrp', initial: 'M', color: 'bg-pink-200', text: 'Je suis RA-VIE ! J\'ai fais une prestation de rehaussement de cils coréen et le résultat est juste magnifique 😍', delay: '150ms' },
-                { name: 'Charlotte', initial: 'C', color: 'bg-indigo-200', text: 'Un grand merci à Carole pour son travail exceptionnel sur mes sourcils ! Très professionnelle et à l\'écoute.', delay: '200ms' },
-                { name: 'Mélia Belkacemi', initial: 'M', color: 'bg-rose-200', text: 'Un moment beauté & bonne humeur ✨ Le résultat est vraiment bluffant, naturel, soigné.', delay: '250ms' },
-                { name: 'Manon Wrk', initial: 'M', color: 'bg-violet-200', text: 'Très satisfaite ! Son travail est minutieux et elle a réussi à réaliser un cover magnifique.', delay: '300ms' },
-                { name: 'Laura', initial: 'L', color: 'bg-green-200', text: 'Vraiment un grand merci ! Carole est professionnel, rassurante et vraiment minutieuse.', delay: '350ms' }
+                { name: 'Manon Hans', initial: 'M', color: 'bg-purple-200', text: 'Magnifique prestation de rehaussement de cils coréen + teinture. Le résultat est incroyable. Carole est super sympa!' },
+                { name: 'Marion mrp', initial: 'M', color: 'bg-pink-200', text: 'Je suis RA-VIE ! J\'ai fais une prestation de rehaussement de cils coréen et le résultat est juste magnifique 😍' },
+                { name: 'Charlotte', initial: 'C', color: 'bg-indigo-200', text: 'Un grand merci à Carole pour son travail exceptionnel sur mes sourcils ! Très professionnelle et à l\'écoute.' },
+                { name: 'Mélia Belkacemi', initial: 'M', color: 'bg-rose-200', text: 'Un moment beauté & bonne humeur ✨ Le résultat est vraiment bluffant, naturel, soigné.' },
+                { name: 'Manon Wrk', initial: 'M', color: 'bg-violet-200', text: 'Très satisfaite ! Son travail est minutieux et elle a réussi à réaliser un cover magnifique.' },
+                { name: 'Laura', initial: 'L', color: 'bg-green-200', text: 'Vraiment un grand merci ! Carole est professionnel, rassurante et vraiment minutieuse.' }
               ].map((testimonial, index) => (
                 <div 
                   key={index} 
-                  className="bg-white border border-neutral-300 p-8 transition-all duration-500 hover:shadow-lg hover:-translate-y-1 animate-on-scroll opacity-0 translate-y-8"
-                  style={{ transitionDelay: testimonial.delay }}
+                  className="bg-white border border-neutral-300 p-8 transition-all duration-500 hover:shadow-lg hover:-translate-y-1 animate-on-scroll"
                 >
                   <div className="flex items-center mb-6">
                     <div className={`w-12 h-12 rounded-full ${testimonial.color} flex items-center justify-center text-neutral-900 font-medium text-xl`}>
@@ -581,14 +611,21 @@ export default function Home() {
 
       <style jsx global>{`
         .animate-on-scroll {
-          transition-property: opacity, transform;
-          transition-duration: 0.8s;
-          transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+          animation: fadeIn 0.8s ease-out forwards;
+          opacity: 0;
+        }
+
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+          }
+          to {
+            opacity: 1;
+          }
         }
 
         .animate-in {
           opacity: 1 !important;
-          transform: translateY(0) translateX(0) scale(1) !important;
         }
       `}</style>
     </>
