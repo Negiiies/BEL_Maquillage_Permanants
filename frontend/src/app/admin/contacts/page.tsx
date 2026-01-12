@@ -40,7 +40,7 @@ export default function AdminContacts() {
       const params = new URLSearchParams()
       if (filterRead) params.append('isRead', filterRead)
       
-      const response = await fetch(`http://localhost:5000/api/admin/contacts?${params}`, {
+      const response = await fetch(`/api/admin/contacts?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await response.json()
@@ -60,7 +60,7 @@ export default function AdminContacts() {
   const toggleRead = async (contactId: number, isRead: boolean) => {
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:5000/api/admin/contacts/${contactId}/read`, {
+      const response = await fetch(`/api/admin/contacts/${contactId}/read`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -83,7 +83,7 @@ export default function AdminContacts() {
 
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:5000/api/admin/contacts/${contactId}`, {
+      const response = await fetch(`/api/admin/contacts/${contactId}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })

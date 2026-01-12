@@ -70,7 +70,7 @@ export default function AdminServices() {
   const fetchServices = async () => {
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch('http://localhost:5000/api/admin/services', {
+      const response = await fetch('/api/admin/services', {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       const data = await response.json()
@@ -192,7 +192,7 @@ export default function AdminServices() {
       const formDataUpload = new FormData()
       formDataUpload.append('image', file)
 
-      const response = await fetch('http://localhost:5000/api/admin/upload/service-image', {
+      const response = await fetch('/api/admin/upload/service-image', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -224,8 +224,8 @@ export default function AdminServices() {
     try {
       const token = localStorage.getItem('adminToken')
       const url = editingService 
-        ? `http://localhost:5000/api/admin/services/${editingService.id}`
-        : 'http://localhost:5000/api/admin/services'
+        ? `/api/admin/services/${editingService.id}`
+        : '/api/admin/services'
       
       const response = await fetch(url, {
         method: editingService ? 'PUT' : 'POST',
@@ -262,7 +262,7 @@ export default function AdminServices() {
 
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:5000/api/admin/services/${id}`, {
+      const response = await fetch(`/api/admin/services/${id}`, {
         method: 'DELETE',
         headers: { 'Authorization': `Bearer ${token}` }
       })
@@ -285,7 +285,7 @@ export default function AdminServices() {
   const toggleActive = async (service: Service) => {
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:5000/api/admin/services/${service.id}`, {
+      const response = await fetch(`/api/admin/services/${service.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -370,7 +370,7 @@ export default function AdminServices() {
             {service.imageUrl && (
               <div className="h-48 bg-gray-200">
                 <img 
-                  src={`http://localhost:5000${service.imageUrl}`}
+                  src={`/api${service.imageUrl}`}
                   alt={service.name}
                   className="w-full h-full object-cover"
                 />
@@ -611,7 +611,7 @@ export default function AdminServices() {
                 {formData.imageUrl && (
                   <div className="mt-2">
                     <img 
-                      src={`http://localhost:5000${formData.imageUrl}`}
+                      src={`/api${formData.imageUrl}`}
                       alt="Preview"
                       className="h-32 w-32 object-cover rounded"
                     />

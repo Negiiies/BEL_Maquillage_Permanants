@@ -17,9 +17,8 @@ router.post('/login/resend', adminController.resendTwoFactorCode);
 router.post('/logout', adminController.logoutAdmin);
 
 // Setup admin (UNIQUEMENT en développement)
-if (process.env.NODE_ENV !== 'production') {
-  router.post('/setup', adminController.createAdmin);
-}
+// Setup admin - TEMPORAIRE
+router.post('/setup', adminController.createAdmin);
 
 router.get('/verify', adminController.verifyAdminToken);
 

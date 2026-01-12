@@ -28,7 +28,7 @@ export default function FormationsHomePage() {
   useEffect(() => {
     const fetchFormationCounts = async () => {
       try {
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
         const response = await fetch(`${API_URL}/api/formations`);
         
         if (response.ok) {

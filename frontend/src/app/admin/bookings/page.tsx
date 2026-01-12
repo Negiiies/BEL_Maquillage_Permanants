@@ -79,7 +79,7 @@ export default function AdminBookings() {
       if (statusFilter) params.append('status', statusFilter)
       if (dateFilter) params.append('date', dateFilter)
       
-      const response = await fetch(`http://localhost:5000/api/admin/bookings?${params}`, {
+      const response = await fetch(`/api/admin/bookings?${params}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       })
       
@@ -116,7 +116,7 @@ export default function AdminBookings() {
   const updateBookingStatus = async (bookingId: number, newStatus: string, notes?: string) => {
     try {
       const token = localStorage.getItem('adminToken')
-      const response = await fetch(`http://localhost:5000/api/admin/bookings/${bookingId}/status`, {
+      const response = await fetch(`/api/admin/bookings/${bookingId}/status`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

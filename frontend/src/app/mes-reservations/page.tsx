@@ -48,7 +48,7 @@ function MesReservationsContent() {
       }
 
       try {
-        const response = await fetch('http://localhost:5000/api/bookings/my-bookings', {
+        const response = await fetch('/api/bookings/my-bookings', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
@@ -99,7 +99,7 @@ function MesReservationsContent() {
 
     const token = localStorage.getItem('clientToken')
     try {
-      const response = await fetch(`http://localhost:5000/api/bookings/${bookingId}/cancel`, {
+      const response = await fetch(`/api/bookings/${bookingId}/cancel`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,

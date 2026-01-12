@@ -18,7 +18,7 @@ COPY . .
 # Variables d'environnement pour le build
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
-
+ENV NEXT_PUBLIC_API_URL=http://135.125.107.166:5000
 # Build de l'application
 RUN npm run build
 

@@ -24,7 +24,7 @@ export default function AdminLogin() {
   try {
     console.log('📤 Envoi requête login...')
     
-    const response = await fetch('http://localhost:5000/api/admin/login/step1', {
+    const response = await fetch('/api/admin/login/step1', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

@@ -68,7 +68,7 @@ export default function AdminDashboard() {
       
       try {
         // Récupérer les statistiques générales
-        const statsRes = await fetch('http://localhost:5000/api/admin/dashboard', {
+        const statsRes = await fetch('/api/admin/dashboard', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
@@ -80,7 +80,7 @@ export default function AdminDashboard() {
         }
 
         // Récupérer les statistiques de réservations
-        const bookingStatsRes = await fetch('http://localhost:5000/api/bookings/stats', {
+        const bookingStatsRes = await fetch('/api/bookings/stats', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
@@ -92,7 +92,7 @@ export default function AdminDashboard() {
         }
 
         // Récupérer les réservations récentes
-        const bookingsRes = await fetch('http://localhost:5000/api/bookings?limit=5', {
+        const bookingsRes = await fetch('/api/bookings?limit=5', {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
