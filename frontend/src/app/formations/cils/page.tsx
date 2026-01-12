@@ -118,7 +118,7 @@ export default function FormationsCilsPage() {
                   <div className="relative aspect-[3/4] overflow-hidden bg-neutral-200">
                     {formation.imageUrl ? (
                       <img
-                        src={`${API_URL}${formation.imageUrl}`}
+                        src={formation.imageUrl}
                         alt={formation.title}
                         className="w-full h-full object-cover transition-transform duration-700 hover:scale-105"
                       />
