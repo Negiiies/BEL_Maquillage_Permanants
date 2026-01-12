@@ -92,7 +92,7 @@ export default function AdminFormationsPage() {
 
       if (data.success) {
         setFormData(prev => ({ ...prev, imageUrl: data.data.imageUrl }));
-        setImagePreview(`${API_URL}${data.data.imageUrl}`);
+        setImagePreview(data.data.imageUrl);
       } else {
         alert(data.message || 'Erreur lors de l\'upload');
       }
@@ -158,7 +158,7 @@ export default function AdminFormationsPage() {
     });
     
     if (formation.imageUrl) {
-      setImagePreview(`${API_URL}${formation.imageUrl}`);
+      setImagePreview(data.data.imageUrl);
     }
     
     setShowModal(true);

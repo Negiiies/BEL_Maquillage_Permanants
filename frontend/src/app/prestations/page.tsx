@@ -187,7 +187,7 @@ export default function PrestationsPage() {
                         <div className="relative overflow-hidden rounded-xl shadow-lg border border-neutral-300">
                           {service.imageUrl ? (
                             <img
-                              src={`${API_URL}${service.imageUrl}`}
+                              src={service.imageUrl}
                               alt={service.name}
                               className="w-full h-[500px] object-cover transition-transform duration-700 hover:scale-105"
                             />
