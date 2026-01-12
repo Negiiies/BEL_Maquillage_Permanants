@@ -175,7 +175,7 @@ export default function AdminTimeSlotsGenerator() {
 
       // Envoyer au backend
       const promises = allSlots.map(day => 
-        fetch(`${API_URL}/api/timeslots`, {
+        fetch(`${API_URL}/timeslots`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

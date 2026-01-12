@@ -37,7 +37,7 @@ export default function MonComptePage() {
       }
 
       try {
-        const response = await fetch(`${API_URL}/api/auth/profile`, {
+        const response = await fetch(`${API_URL}/auth/profile`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
@@ -67,7 +67,7 @@ export default function MonComptePage() {
     try {
       const token = localStorage.getItem('clientToken')
       
-      await fetch(`${API_URL}/api/auth/logout`, {
+      await fetch(`${API_URL}/auth/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -91,7 +91,7 @@ export default function MonComptePage() {
     try {
       const token = localStorage.getItem('clientToken')
       
-      const response = await fetch(`${API_URL}/api/client/account`, {
+      const response = await fetch(`${API_URL}/client/account`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -140,7 +140,7 @@ export default function MonComptePage() {
     try {
       const token = localStorage.getItem('clientToken')
       
-      const response = await fetch(`${API_URL}/api/auth/change-password`, {
+      const response = await fetch(`${API_URL}/auth/change-password`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

@@ -86,7 +86,7 @@ export default function AdminVerify2FAPage() {
     setError('')
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/login/verify`, {
+      const response = await fetch(`${API_URL}/admin/login/verify`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code: finalCode })
@@ -119,7 +119,7 @@ export default function AdminVerify2FAPage() {
     setError('')
 
     try {
-      const response = await fetch(`${API_URL}/api/admin/login/resend`, {
+      const response = await fetch(`${API_URL}/admin/login/resend`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })

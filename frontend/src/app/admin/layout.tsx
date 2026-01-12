@@ -45,7 +45,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
       try {
         // ✅ Vérifier que le token est toujours valide
-        const response = await fetch(`${API_URL}/api/admin/verify`, {
+        const response = await fetch(`${API_URL}/admin/verify`, {
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
@@ -73,7 +73,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     try {
       const token = localStorage.getItem('adminToken')
       
-      await fetch(`${API_URL}/api/admin/logout`, {
+      await fetch(`${API_URL}/admin/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

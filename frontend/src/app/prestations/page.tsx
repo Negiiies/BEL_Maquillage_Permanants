@@ -44,7 +44,7 @@ export default function PrestationsPage() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/services`)
+        const response = await fetch(`${API_URL}/services`)
         const data = await response.json()
         if (data.success) {
           setServices(data.data)

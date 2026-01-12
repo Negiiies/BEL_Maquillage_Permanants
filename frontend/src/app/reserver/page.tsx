@@ -64,7 +64,7 @@ function ReservationContent() {
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/services`)
+        const response = await fetch(`${API_URL}/services`)
         const data = await response.json()
         if (data.success) {
           setServices(data.data)
@@ -95,7 +95,7 @@ function ReservationContent() {
           console.log('🔍 Fetching slots for service:', selectedService.id)
           
           const response = await fetch(
-            `${API_URL}/api/timeslots/available?serviceId=${selectedService.id}`
+            `${API_URL}/timeslots/available?serviceId=${selectedService.id}`
           )
           const data = await response.json()
           
@@ -141,7 +141,7 @@ function ReservationContent() {
 
     try {
       const token = localStorage.getItem('clientToken')
-      const response = await fetch(`${API_URL}/api/bookings`, {
+      const response = await fetch(`${API_URL}/bookings`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

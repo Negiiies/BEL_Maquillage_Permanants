@@ -23,7 +23,7 @@ export const useAuth = () => {
 
     const verifyToken = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/admin/verify`, {  // ✅ Changé ici
+        const response = await fetch(`${API_URL}/admin/verify`, {  // ✅ Changé ici
           headers: { 'Authorization': `Bearer ${token}` }
         })
         
@@ -49,7 +49,7 @@ export const useAuth = () => {
       const token = localStorage.getItem('adminToken')
       
       // ✅ Appeler l'API de logout
-      await fetch(`${API_URL}/api/admin/logout`, {
+      await fetch(`${API_URL}/admin/logout`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`

@@ -24,7 +24,7 @@ export default function FormationsLevresPage() {
   useEffect(() => {
     const fetchFormations = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/formations/subcategory/levres`);
+        const response = await fetch(`${API_URL}/formations/subcategory/levres`);
         const data = await response.json();
         
         if (data.success && data.data) {

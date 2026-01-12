@@ -24,7 +24,7 @@ export default function FormationsCilsPage() {
   useEffect(() => {
     const fetchFormations = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/formations/subcategory/cils`);
+        const response = await fetch(`${API_URL}/formations/subcategory/cils`);
         const data = await response.json();
         
         if (data.success && data.data) {

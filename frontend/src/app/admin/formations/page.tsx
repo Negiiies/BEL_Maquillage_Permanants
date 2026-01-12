@@ -43,7 +43,7 @@ export default function AdminFormationsPage() {
   const fetchFormations = async () => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${API_URL}/api/formations`, {
+      const response = await fetch(`${API_URL}/formations`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -80,7 +80,7 @@ export default function AdminFormationsPage() {
       const formDataUpload = new FormData();
       formDataUpload.append('image', file);
 
-      const response = await fetch(`${API_URL}/api/admin/upload/formation-image`, {
+      const response = await fetch(`${API_URL}/admin/upload/formation-image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -111,8 +111,8 @@ export default function AdminFormationsPage() {
     try {
       const token = localStorage.getItem('adminToken');
       const url = editingFormation
-        ? `${API_URL}/api/formations/${editingFormation.id}`
-        : `${API_URL}/api/formations`;
+        ? `${API_URL}/formations/${editingFormation.id}`
+        : `${API_URL}/formations`;
 
       const response = await fetch(url, {
         method: editingFormation ? 'PUT' : 'POST',
@@ -169,7 +169,7 @@ export default function AdminFormationsPage() {
 
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${API_URL}/api/formations/${id}`, {
+      const response = await fetch(`${API_URL}/formations/${id}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -190,7 +190,7 @@ export default function AdminFormationsPage() {
   const toggleActive = async (formation: Formation) => {
     try {
       const token = localStorage.getItem('adminToken');
-      const response = await fetch(`${API_URL}/api/formations/${formation.id}`, {
+      const response = await fetch(`${API_URL}/formations/${formation.id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

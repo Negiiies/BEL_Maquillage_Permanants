@@ -24,7 +24,7 @@ export default function FormationsSourcecilsPage() {
   useEffect(() => {
     const fetchFormations = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/formations/subcategory/sourcils`);
+        const response = await fetch(`${API_URL}/formations/subcategory/sourcils`);
         const data = await response.json();
         
         if (data.success && data.data) {

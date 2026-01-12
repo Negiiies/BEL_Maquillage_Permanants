@@ -34,7 +34,7 @@ export default function FormationSections({ formationTitle, formationId }: Forma
     setSuccess(false);
 
     try {
-      const response = await fetch(`${API_URL}/api/inscriptions`, {
+      const response = await fetch(`${API_URL}/inscriptions`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
