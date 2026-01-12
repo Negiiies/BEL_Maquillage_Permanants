@@ -370,7 +370,7 @@ export default function AdminServices() {
             {service.imageUrl && (
               <div className="h-48 bg-gray-200">
                 <img 
-                  src={`/api${service.imageUrl}`}
+                  src={service.imageUrl}
                   alt={service.name}
                   className="w-full h-full object-cover"
                 />
