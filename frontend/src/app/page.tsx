@@ -471,7 +471,7 @@ export default function Home() {
         >
           <div className="absolute inset-0">
             <img 
-              src="/images/Bel.jpg" 
+              src="/images/Bel.JPG" 
               alt="Prenons soin de vous"
               className="w-full h-full object-cover will-change-transform"
               style={{
